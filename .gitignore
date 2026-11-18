@@ -50,6 +50,11 @@ htmlcov/
 *.sqlite3
 axion_validated_memory.json
 
+# Node & Frontend
+node_modules/
+.playwright-mcp/
+frontend/dist/
+
 # AXION Scratch & Logs
 logs/
 *.log

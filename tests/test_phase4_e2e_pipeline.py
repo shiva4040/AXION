@@ -105,9 +105,11 @@ async def test_validation_and_memory_api_endpoints(test_db_session):
         assert test_data["verdict"] == "SUPPORTED"
 
         # 2. Memory store endpoint
+        import uuid
+        fnd_id = f"fnd-api-{uuid.uuid4().hex[:6]}"
         fnd_payload = {
             "finding": {
-                "finding_id": "fnd-api-01",
+                "finding_id": fnd_id,
                 "version": 1,
                 "title": "Ohmic Proportionality",
                 "statement": "Voltage drops proportionally to current.",
@@ -123,25 +125,25 @@ async def test_validation_and_memory_api_endpoints(test_db_session):
         resp_store = await client.post("/api/v1/memory/findings", json=fnd_payload)
         assert resp_store.status_code == 200
         store_data = resp_store.json()
-        assert store_data["finding_id"] == "fnd-api-01"
+        assert store_data["finding_id"] == fnd_id
         assert store_data["status"] == "VALID"
 
         # 3. Memory list endpoint
         resp_list = await client.get("/api/v1/memory/findings?active_only=true")
         assert resp_list.status_code == 200
         list_data = resp_list.json()
-        assert any(f["finding_id"] == "fnd-api-01" for f in list_data)
+        assert any(f["finding_id"] == fnd_id for f in list_data)
 
         # 4. Invalidation endpoint
         inval_payload = {"reason": "High-frequency non-linearity detected."}
-        resp_inval = await client.post("/api/v1/memory/findings/fnd-api-01/invalidate", json=inval_payload)
+        resp_inval = await client.post(f"/api/v1/memory/findings/{fnd_id}/invalidate", json=inval_payload)
         assert resp_inval.status_code == 200
         inval_data = resp_inval.json()
         assert inval_data["finding"]["status"] == "INVALIDATED"
         assert inval_data["finding"]["version"] == 2
 
         # 5. History endpoint
-        resp_hist = await client.get("/api/v1/memory/findings/fnd-api-01/history")
+        resp_hist = await client.get(f"/api/v1/memory/findings/{fnd_id}/history")
         assert resp_hist.status_code == 200
         hist_data = resp_hist.json()
         assert len(hist_data) == 2 # CREATED and INVALIDATED

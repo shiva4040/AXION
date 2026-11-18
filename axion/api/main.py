@@ -56,6 +56,9 @@ def create_app() -> FastAPI:
     # Static assets mounting & Minimal Homepage
     static_dir = Path(__file__).resolve().parent.parent / "static"
     if static_dir.exists():
+        assets_dir = static_dir / "assets"
+        if assets_dir.exists():
+            app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
         app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
         @app.get("/", include_in_schema=False)

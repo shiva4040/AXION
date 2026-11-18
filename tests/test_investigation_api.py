@@ -6,6 +6,7 @@ from axion.database.connection import get_db_session
 @pytest.mark.asyncio
 async def test_homepage_static_serving():
     """Verify that the empty minimalist homepage and static assets are served properly."""
+    import re
     app = create_app()
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         # 1. Root homepage
@@ -13,25 +14,27 @@ async def test_homepage_static_serving():
         assert resp.status_code == 200
         html = resp.text
         assert "AXION" in html
-        assert "What would you like to understand or solve?" in html
-        assert "question-textarea" in html
-        assert "attach-btn" in html
-        assert "send-btn" in html
-        # Confirm no dashboard clutter or 3D cards
-        assert "dashboard-card" not in html
-        assert "recent-activity" not in html
-        assert "three.js" not in html.lower()
+        assert 'id="root"' in html
 
-        # 2. CSS stylesheet
-        css_resp = await ac.get("/static/style.css")
+        # Extract JS and CSS bundle paths from HTML
+        js_match = re.search(r'src="(/assets/[^"]+\.js)"', html)
+        css_match = re.search(r'href="(/assets/[^"]+\.css)"', html)
+        assert js_match is not None, "JS bundle script not found in index.html"
+        assert css_match is not None, "CSS bundle link not found in index.html"
+
+        # 2. CSS stylesheet bundle
+        css_url = css_match.group(1)
+        css_resp = await ac.get(css_url)
         assert css_resp.status_code == 200
-        assert "--bg-color: #fbfbfc;" in css_resp.text
-        assert "--accent-blue: #2563eb;" in css_resp.text
+        assert len(css_resp.text) > 1000
 
-        # 3. JavaScript application logic
-        js_resp = await ac.get("/static/app.js")
+        # 3. JavaScript application logic bundle
+        js_url = js_match.group(1)
+        js_resp = await ac.get(js_url)
         assert js_resp.status_code == 200
-        assert "submitQuestion" in js_resp.text
+        assert "What would you like to understand or solve?" in js_resp.text
+        assert "Three.js WebGL Engine" in js_resp.text
+        assert "Solar-Powered Electric Drivetrain" in js_resp.text
 
 @pytest.mark.asyncio
 async def test_investigation_ask_empty_query():
