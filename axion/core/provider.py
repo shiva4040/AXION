@@ -92,6 +92,98 @@ class MockProvider(LLMProvider):
             embeddings.append(vec.tolist())
         return embeddings
 
+class OpenAIProvider(LLMProvider):
+    """Native OpenAI REST API adapter via httpx."""
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o"):
+        from axion.config import settings
+        self.api_key = api_key or settings.openai_api_key
+        self.model = model
+        self.base_url = "https://api.openai.com/v1"
+
+    async def generate_text(
+        self,
+        messages: List[ChatMessage],
+        temperature: float = 0.0,
+        max_tokens: int = 2048,
+        response_model: Optional[Type[T]] = None
+    ) -> LLMResponse:
+        import httpx
+        if not self.api_key:
+            return MockProvider().generate_text(messages, temperature, max_tokens, response_model)
+        
+        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+        payload = {
+            "model": self.model,
+            "messages": [{"role": m.role, "content": m.content} for m in messages],
+            "temperature": temperature,
+            "max_tokens": max_tokens
+        }
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+            choice = data["choices"][0]
+            usage = data.get("usage", {})
+            return LLMResponse(
+                text=choice["message"]["content"],
+                model=self.model,
+                prompt_tokens=usage.get("prompt_tokens", 0),
+                completion_tokens=usage.get("completion_tokens", 0),
+                total_tokens=usage.get("total_tokens", 0)
+            )
+
+    async def generate_embeddings(self, texts: List[str]) -> List[List[float]]:
+        import httpx
+        if not self.api_key:
+            return await MockProvider().generate_embeddings(texts)
+        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+        payload = {"model": "text-embedding-3-small", "input": texts}
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(f"{self.base_url}/embeddings", headers=headers, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+            return [item["embedding"] for item in data["data"]]
+
+class GeminiProvider(LLMProvider):
+    """Native Google Gemini REST API adapter via httpx."""
+    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-1.5-flash"):
+        from axion.config import settings
+        self.api_key = api_key or settings.gemini_api_key
+        self.model = model
+        self.base_url = "https://generativelanguage.googleapis.com/v1beta"
+
+    async def generate_text(
+        self,
+        messages: List[ChatMessage],
+        temperature: float = 0.0,
+        max_tokens: int = 2048,
+        response_model: Optional[Type[T]] = None
+    ) -> LLMResponse:
+        import httpx
+        if not self.api_key:
+            return await MockProvider().generate_text(messages, temperature, max_tokens, response_model)
+        
+        contents = []
+        for m in messages:
+            role = "user" if m.role in ["user", "system"] else "model"
+            contents.append({"role": role, "parts": [{"text": m.content}]})
+
+        url = f"{self.base_url}/models/{self.model}:generateContent?key={self.api_key}"
+        payload = {
+            "contents": contents,
+            "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens}
+        }
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(url, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+            cand = data["candidates"][0]
+            text = cand["content"]["parts"][0]["text"]
+            return LLMResponse(text=text, model=self.model)
+
+    async def generate_embeddings(self, texts: List[str]) -> List[List[float]]:
+        return await MockProvider().generate_embeddings(texts)
+
 def get_llm_provider(provider_name: Optional[str] = None) -> LLMProvider:
     from axion.config import settings
     name = (provider_name or settings.default_llm_provider).lower()
@@ -99,13 +191,8 @@ def get_llm_provider(provider_name: Optional[str] = None) -> LLMProvider:
     if name == "mock":
         return MockProvider(dimension=settings.embedding_dimension)
     elif name == "openai":
-        # Lazy import of openai adapter
-        from axion.core.openai_provider import OpenAIProvider
         return OpenAIProvider()
     elif name == "gemini":
-        # Lazy import of gemini adapter
-        from axion.core.gemini_provider import GeminiProvider
         return GeminiProvider()
     else:
-        # Default fallback to Mock
         return MockProvider(dimension=settings.embedding_dimension)

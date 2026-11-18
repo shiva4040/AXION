@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from axion.config import settings
 from axion.database.connection import init_db
-from axion.api.routes import documents, graph, baseline
+from axion.api.routes import documents, graph, baseline, reasoning
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,6 +33,7 @@ def create_app() -> FastAPI:
     app.include_router(documents.router, prefix="/api/v1")
     app.include_router(graph.router, prefix="/api/v1")
     app.include_router(baseline.router, prefix="/api/v1")
+    app.include_router(reasoning.router, prefix="/api/v1")
 
     @app.get("/health", tags=["Health"])
     async def health_check():
