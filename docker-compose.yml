@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: axion_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-axion_db}
+      POSTGRES_USER: ${POSTGRES_USER:-axion_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-axion_secure_password_123}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-axion_user} -d ${POSTGRES_DB:-axion_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
