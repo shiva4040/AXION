@@ -38,6 +38,8 @@ Architecture Decision Records (ADRs) capture critical technical, architectural, 
 | ADR-010 | Asynchronous FastAPI + SQLAlchemy 2.0 Backend Core        | FINAL       |
 | ADR-011 | Analogical Schema Projection & SMT for Cross-Domain Xfer   | FINAL       |
 | ADR-012 | Multi-Tiered Applicability Guard for Transferred Knowledge| FINAL       |
+| ADR-013 | Isolated Experiment Execution Architecture for Validation | FINAL       |
+| ADR-014 | Validated Knowledge Memory & Dependency Invalidation Graph| FINAL       |
 +---------+-----------------------------------------------------------+-------------+
 ```
 
@@ -249,3 +251,46 @@ Architecture Decision Records (ADRs) capture critical technical, architectural, 
   - Enforces the Epistemic Ladder: accepted transfers remain tagged as `HYPOTHESIS_CONJECTURED` until empirically validated in sandbox or real experiments.
 - **Consequences & Trade-offs:**
   - Rejects plausible-looking analogies when dimensional or assumption discrepancies exist (lowering false acceptances at the cost of requiring explicit domain assumptions).
+
+---
+
+### ADR-013: Multi-Tiered Isolated Experiment Execution Architecture for Hypothesis Validation
+
+- **Status:** `FINAL`
+- **Context:** Component 8 requires executing numerical simulations, algebraic calculations, statistical tests, and parameter sweeps to validate or falsify hypotheses. However, arbitrary code execution inside the main web server process presents security, resource exhaustion, and stability hazards. Furthermore, direct exposure of the Docker daemon socket to web applications is a critical privilege escalation risk.
+- **Options Considered:**
+  1. *Option A (Direct In-Process exec/eval):* Execute generated Python scripts directly in the FastAPI event loop. (Extremely insecure, risk of process crash, CPU starvation, arbitrary system access).
+  2. *Option B (Mandatory Docker-Only Daemon Access):* Require Docker socket access for all executions. (Fails in environments where Docker/WSL2 is absent, and mounting `/var/run/docker.sock` directly into web APIs violates security threat models).
+  3. *Option C (Multi-Tiered Isolated Sandbox Architecture):* 
+     - Static AST validation blocking unsafe builtins (`os`, `sys`, `subprocess`, socket, `eval`, dunder introspection).
+     - Execution timeouts (default 5.0s) and restricted namespaces containing scientific libraries (`numpy`, `scipy`, `sympy`, `math`).
+     - Decoupled worker process architecture with stdin/stdout JSON IPC for external execution, with container driver interface for environments with isolated container workers.
+- **Decision:** **Option C (Multi-Tiered Isolated Sandbox Architecture)**.
+- **Justification:**
+  - Guarantees safe and reproducible experiment execution across both local developer machines (without WSL2/Docker) and production cloud containers.
+  - Strictly prevents arbitrary system modification, filesystem access outside designated scratch areas, and network leakage.
+  - Zero direct Docker socket exposure to the API process.
+- **Consequences & Trade-offs:**
+  - Dynamic user-defined scripts must conform to the AST safety profile (disallowing arbitrary subprocesses or network I/O).
+
+---
+
+### ADR-014: Validated Knowledge Memory and Dependency Invalidation Graph
+
+- **Status:** `FINAL`
+- **Context:** Once a hypothesis is supported through rigorous experiment execution, it must be stored in knowledge memory. However, scientific knowledge is provisional: empirical findings may later be corrected, superseded by higher-precision experiments, or invalidated when upstream premises are refuted. A flat key-value store cannot track downstream epistemic consequences.
+- **Options Considered:**
+  1. *Option A (Mutable Database Records):* Directly edit or delete records when revised. (Destroys historical audit trails, making previous reasoning irreproducible).
+  2. *Option B (Immutable Versioned DAG with Cascading Re-evaluation):*
+     - Every finding is explicitly versioned and tracked with status: `VALID`, `INVALIDATED`, `SUPERSEDED`.
+     - Explicit directed dependency links: `derived_from_finding_ids` and `superseded_by_id`.
+     - When an upstream finding is invalidated or superseded, the system executes an automated dependency traversal identifying all downstream findings requiring re-evaluation.
+     - Strict gate: only hypotheses with confirmed `SUPPORTED` experimental evidence can ever achieve Epistemic Tier 4 (`FINDING_VALIDATED`).
+- **Decision:** **Option B (Immutable Versioned DAG with Cascading Re-evaluation)**.
+- **Justification:**
+  - Preserves immutable provenance and scientific integrity without data loss.
+  - Prevents stale, refuted findings from silently corrupting ongoing cross-domain research.
+  - Enforces the Epistemic Ladder by preventing unverified conjectures from being promoted to established facts.
+- **Consequences & Trade-offs:**
+  - Additional relational graph maintenance for finding dependencies.
+  - Query logic must default to filtering for `status == VALID` while retaining historical audit access.
