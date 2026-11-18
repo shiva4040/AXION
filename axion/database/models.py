@@ -147,3 +147,54 @@ class Investigation(Base):
     target_domains = Column(JSON, default=list)
     status = Column(String(32), default="ACTIVE") # 'ACTIVE', 'COMPLETED', 'FAILED'
     created_at = Column(DateTime(timezone=True), default=get_utc_now)
+
+
+class FindingRecord(Base):
+    """Component 9: Persistent Validated Finding (Epistemic Tier 4)."""
+    __tablename__ = "validated_findings"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    version = Column(Integer, nullable=False, default=1)
+    title = Column(String(255), nullable=False)
+    statement = Column(Text, nullable=False)
+    status = Column(String(32), nullable=False, default="VALID", index=True) # 'VALID', 'INVALIDATED', 'SUPERSEDED'
+    hypothesis_id = Column(String(64), nullable=False, index=True)
+    epistemic_tier = Column(String(32), nullable=False, default=EpistemicTier.FINDING_VALIDATED.value)
+    supporting_experiment_ids = Column(JSON, default=list)
+    source_provenance = Column(JSON, default=list)
+    active_assumptions = Column(JSON, default=list)
+    applicable_conditions = Column(JSON, default=list)
+    limitations = Column(JSON, default=list)
+    derived_from_finding_ids = Column(JSON, default=list)
+    superseded_by_id = Column(String(36), nullable=True)
+    invalidation_reason = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+
+
+class FindingVersionAuditRecord(Base):
+    """Component 9: Immutable audit history for finding lifecycle state transitions."""
+    __tablename__ = "finding_version_audit"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    finding_id = Column(String(36), ForeignKey("validated_findings.id", ondelete="CASCADE"), nullable=False, index=True)
+    version = Column(Integer, nullable=False)
+    previous_status = Column(String(32), nullable=True)
+    new_status = Column(String(32), nullable=False)
+    change_type = Column(String(32), nullable=False) # 'CREATED', 'INVALIDATED', 'SUPERSEDED'
+    reason = Column(Text, nullable=False)
+    timestamp = Column(DateTime(timezone=True), default=get_utc_now)
+
+
+class FindingDependencyEdge(Base):
+    """Component 9: Explicit dependency link between findings for cascading invalidation."""
+    __tablename__ = "finding_dependencies"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    parent_finding_id = Column(String(36), ForeignKey("validated_findings.id", ondelete="CASCADE"), nullable=False, index=True)
+    child_finding_id = Column(String(36), ForeignKey("validated_findings.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+
+    __table_args__ = (
+        UniqueConstraint("parent_finding_id", "child_finding_id", name="uq_finding_dep_parent_child"),
+    )

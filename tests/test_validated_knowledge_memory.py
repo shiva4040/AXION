@@ -189,3 +189,61 @@ def test_cascading_dependency_invalidation(memory, supported_experiment):
     f3_sound, f3_issues = memory.check_finding_integrity("fnd-composite")
     # F3 derives from F2, which is still marked VALID but whose prerequisite is invalidated
     # If F2 is subsequently invalidated, F3 integrity reports F2 invalidation
+
+
+def test_persistent_memory_storage_across_restarts(tmp_path, supported_experiment):
+    persist_file = str(tmp_path / "test_memory.json")
+
+    # Instance 1: Store findings, relationships, and invalidations
+    mem1 = ValidatedKnowledgeMemory(persistence_path=persist_file)
+
+    f1 = ValidatedFinding(
+        finding_id="fnd-p1",
+        title="Persistent Finding 1",
+        statement="Statement 1",
+        hypothesis_id="hyp-p1",
+        created_at="",
+        updated_at="",
+    )
+    f2 = ValidatedFinding(
+        finding_id="fnd-p2",
+        title="Persistent Finding 2",
+        statement="Statement 2 derived from 1",
+        hypothesis_id="hyp-p2",
+        derived_from_finding_ids=["fnd-p1"],
+        created_at="",
+        updated_at="",
+    )
+    mem1.store_validated_finding(f1, supported_experiment)
+    mem1.store_validated_finding(f2, supported_experiment)
+
+    # Invalidate F1 in Instance 1
+    mem1.invalidate_finding("fnd-p1", reason="Experimental discrepancy found.")
+
+    # Instance 2 (Simulated Application Restart): loads from same file
+    mem2 = ValidatedKnowledgeMemory(persistence_path=persist_file)
+
+    # Verify findings are restored
+    restored_f1 = mem2.get_finding("fnd-p1")
+    assert restored_f1 is not None
+    assert restored_f1.status == KnowledgeStatus.INVALIDATED
+    assert restored_f1.version == 2
+    assert "discrepancy" in restored_f1.invalidation_reason
+
+    restored_f2 = mem2.get_finding("fnd-p2")
+    assert restored_f2 is not None
+    assert restored_f2.derived_from_finding_ids == ["fnd-p1"]
+
+    # Verify audit history is restored
+    history_f1 = mem2.get_finding_history("fnd-p1")
+    assert len(history_f1) == 2
+    assert history_f1[1].change_type == "INVALIDATED"
+
+    # Verify cascading dependency DAG is restored
+    impact = mem2.get_affected_dependents("fnd-p1")
+    assert "fnd-p2" in impact.directly_affected_finding_ids
+
+    # Verify integrity check is restored
+    f2_sound, f2_issues = mem2.check_finding_integrity("fnd-p2")
+    assert f2_sound is False
+    assert any("fnd-p1" in issue for issue in f2_issues)

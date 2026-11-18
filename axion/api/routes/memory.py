@@ -15,7 +15,7 @@ from axion.knowledge_memory.memory import (
 from axion.hypothesis_tester.types import ExperimentRecord
 
 router = APIRouter(prefix="/memory", tags=["Component 9: Validated Knowledge Memory"])
-memory = ValidatedKnowledgeMemory()
+memory = ValidatedKnowledgeMemory(persistence_path="axion_validated_memory.json")
 
 class StoreFindingRequest(BaseModel):
     finding: ValidatedFinding

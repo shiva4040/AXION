@@ -1,6 +1,9 @@
+import json
+import os
 import uuid
 from collections import deque
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 from axion.core.types import EpistemicTier
 from axion.hypothesis_tester.types import ExperimentRecord, ExperimentVerdict
@@ -25,15 +28,62 @@ class ValidatedKnowledgeMemory:
     Manages scientifically validated findings (Epistemic Tier 4: FINDING_VALIDATED).
     Enforces strict experimental promotion gates, immutable version history,
     explicit invalidation/superseding, and cascading dependency impact analysis.
+    Supports optional persistent storage on disk across application restarts.
     """
 
-    def __init__(self):
+    def __init__(self, persistence_path: Optional[str] = None):
+        self.persistence_path = persistence_path
         # finding_id -> ValidatedFinding
         self._findings: Dict[str, ValidatedFinding] = {}
         # finding_id -> List[FindingVersionRecord] (immutable audit log)
         self._audit_log: Dict[str, List[FindingVersionRecord]] = {}
         # dependency graph: parent_finding_id -> Set[child_finding_ids]
         self._downstream_dependents: Dict[str, Set[str]] = {}
+
+        if self.persistence_path:
+            self._load_from_disk()
+
+    def _save_to_disk(self) -> None:
+        """Atomically saves memory state to disk if persistence_path is configured."""
+        if not self.persistence_path:
+            return
+        data = {
+            "findings": {fid: f.model_dump() for fid, f in self._findings.items()},
+            "audit_log": {fid: [v.model_dump() for v in logs] for fid, logs in self._audit_log.items()},
+            "downstream_dependents": {pid: list(children) for pid, children in self._downstream_dependents.items()},
+        }
+        p = Path(self.persistence_path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = f"{self.persistence_path}.tmp"
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        if os.path.exists(self.persistence_path):
+            os.replace(tmp_path, self.persistence_path)
+        else:
+            os.rename(tmp_path, self.persistence_path)
+
+    def _load_from_disk(self) -> None:
+        """Loads findings, audit logs, and dependency links from persistent disk storage."""
+        if not self.persistence_path or not os.path.exists(self.persistence_path):
+            return
+        try:
+            with open(self.persistence_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self._findings = {
+                fid: ValidatedFinding.model_validate(raw)
+                for fid, raw in data.get("findings", {}).items()
+            }
+            self._audit_log = {
+                fid: [FindingVersionRecord.model_validate(v) for v in logs]
+                for fid, logs in data.get("audit_log", {}).items()
+            }
+            self._downstream_dependents = {
+                pid: set(children)
+                for pid, children in data.get("downstream_dependents", {}).items()
+            }
+        except Exception:
+            # Fall back to empty state if load fails
+            pass
 
     def store_validated_finding(
         self,
@@ -85,6 +135,7 @@ class ValidatedKnowledgeMemory:
                 self._downstream_dependents[parent_id] = set()
             self._downstream_dependents[parent_id].add(finding.finding_id)
 
+        self._save_to_disk()
         return finding
 
     def invalidate_finding(
@@ -122,6 +173,7 @@ class ValidatedKnowledgeMemory:
 
         # Cascade analysis: identify all downstream findings requiring re-evaluation
         impact_report = self.get_affected_dependents(finding_id)
+        self._save_to_disk()
         return finding, impact_report
 
     def supersede_finding(
@@ -164,6 +216,7 @@ class ValidatedKnowledgeMemory:
         self._audit_log[old_finding_id].append(v_rec)
 
         impact_report = self.get_affected_dependents(old_finding_id)
+        self._save_to_disk()
         return old_finding, stored_new, impact_report
 
     def get_finding(self, finding_id: str) -> Optional[ValidatedFinding]:

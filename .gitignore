@@ -48,6 +48,7 @@ htmlcov/
 *.db
 *.sqlite
 *.sqlite3
+axion_validated_memory.json
 
 # AXION Scratch & Logs
 logs/
