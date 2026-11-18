@@ -1,9 +1,22 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from axion.config import settings
 from axion.database.connection import init_db
-from axion.api.routes import documents, graph, baseline, reasoning, transfer, hypothesis, validation, memory
+from axion.api.routes import (
+    documents,
+    graph,
+    baseline,
+    reasoning,
+    transfer,
+    hypothesis,
+    validation,
+    memory,
+    investigation,
+)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -15,12 +28,12 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     app = FastAPI(
         title="AXION Intelligence Platform API",
-        description="Universal Knowledge and Cross-Domain Intelligence Platform API (Phase 1 Baseline)",
+        description="Universal Knowledge and Cross-Domain Intelligence Platform API",
         version="0.1.0",
         lifespan=lifespan
     )
 
-    # Enable CORS for future frontend integration
+    # Enable CORS for frontend integration
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -38,6 +51,19 @@ def create_app() -> FastAPI:
     app.include_router(hypothesis.router, prefix="/api/v1")
     app.include_router(validation.router, prefix="/api/v1")
     app.include_router(memory.router, prefix="/api/v1")
+    app.include_router(investigation.router, prefix="/api/v1")
+
+    # Static assets mounting & Minimal Homepage
+    static_dir = Path(__file__).resolve().parent.parent / "static"
+    if static_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+        @app.get("/", include_in_schema=False)
+        async def serve_homepage():
+            index_file = static_dir / "index.html"
+            if index_file.exists():
+                return FileResponse(str(index_file))
+            return {"message": "AXION Intelligence Platform API"}
 
     @app.get("/health", tags=["Health"])
     async def health_check():

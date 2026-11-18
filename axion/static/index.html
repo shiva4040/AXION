@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AXION — Research & Intelligence Workspace</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22 font-weight=%22bold%22 fill=%22%232563eb%22>A</text></svg>">
+</head>
+<body>
+
+  <!-- Minimal Top Navigation -->
+  <header class="navbar">
+    <a href="#" class="nav-brand" id="brand-link">
+      <span class="brand-logo">AXION</span>
+      <span class="brand-tag">Intelligence</span>
+    </a>
+
+    <nav class="nav-links">
+      <button class="nav-link" id="history-toggle-btn" title="View conversation history">History</button>
+      <button class="nav-link" id="workspaces-btn" title="Explore Knowledge & Memory">Workspaces</button>
+      <a href="/docs" target="_blank" class="nav-link" title="Open API Documentation">API</a>
+    </nav>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="main-container">
+
+    <!-- 1. EMPTY MINIMAL HOMEPAGE VIEW (DEFAULT) -->
+    <section class="view-section active" id="home-view">
+      <div class="home-center-wrap">
+        <h1 class="home-headline">AXION</h1>
+
+        <!-- Large Elegant Question Input -->
+        <div class="question-box">
+          <textarea
+            id="question-input"
+            class="question-textarea"
+            placeholder="What would you like to understand or solve?"
+            rows="2"
+            autofocus
+          ></textarea>
+
+          <div class="input-actions">
+            <div class="attachment-wrap">
+              <!-- Hidden File Input -->
+              <input type="file" id="file-upload" accept=".pdf,.txt,.json,.csv" style="display: none;">
+              <button class="action-btn" id="attach-btn" title="Attach document or research paper">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                </svg>
+              </button>
+
+              <span class="attached-pill" id="attached-pill">
+                <span id="attached-name">paper.pdf</span>
+                <button class="remove-attach-btn" id="remove-attach-btn">&times;</button>
+              </span>
+            </div>
+
+            <button class="send-btn" id="send-btn" title="Submit Question (Enter)" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="19" x2="12" y2="5"></line>
+                <polyline points="5 12 12 5 19 12"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. CLEAN LOADING STATE VIEW -->
+    <section class="view-section" id="loading-view">
+      <div class="loading-spinner"></div>
+      <h3 class="loading-title">AXION is investigating...</h3>
+      <p class="loading-step" id="loading-step-text">Traversing knowledge graph & evaluating physical constraints</p>
+    </section>
+
+    <!-- 3. SEPARATE CONVERSATION / RESULTS VIEW -->
+    <section class="view-section" id="results-view">
+      <div class="results-header">
+        <div>
+          <span class="badge-tier" id="res-badge">Tier 4: Finding Validated</span>
+          <h2 class="user-question-title" id="res-question-title"></h2>
+        </div>
+        <button class="new-query-btn" id="new-query-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          New Question
+        </button>
+      </div>
+
+      <!-- Main Answer Card -->
+      <article class="answer-card">
+        <div class="answer-body" id="res-answer-body"></div>
+      </article>
+
+      <!-- Collapsible Reasoning & Verification Accordions -->
+      <div class="accordion-item" id="accordion-transfers" style="display: none;">
+        <button class="accordion-header" onclick="toggleAccordion('transfers-content')">
+          <span>Cross-Domain Analogical Transfer & Guard</span>
+          <span id="transfers-count" style="color: var(--accent-blue); font-family: var(--font-mono);"></span>
+        </button>
+        <div class="accordion-content" id="transfers-content"></div>
+      </div>
+
+      <div class="accordion-item" id="accordion-reasoning">
+        <button class="accordion-header" onclick="toggleAccordion('reasoning-content')">
+          <span>Cognitive Reasoning Chain</span>
+          <span>&darr;</span>
+        </button>
+        <div class="accordion-content" id="reasoning-content"></div>
+      </div>
+
+      <div class="accordion-item" id="accordion-evidence">
+        <button class="accordion-header" onclick="toggleAccordion('evidence-content')">
+          <span>Primary Evidence & Source Provenance</span>
+          <span id="evidence-count" style="color: var(--text-muted); font-family: var(--font-mono);"></span>
+        </button>
+        <div class="accordion-content" id="evidence-content"></div>
+      </div>
+
+      <div class="accordion-item" id="accordion-experiments" style="display: none;">
+        <button class="accordion-header" onclick="toggleAccordion('experiments-content')">
+          <span>Hypothesis Verification & Experiment Records</span>
+          <span>&darr;</span>
+        </button>
+        <div class="accordion-content" id="experiments-content"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Slide-Out Conversation History Drawer -->
+  <aside class="history-drawer" id="history-drawer">
+    <div class="drawer-header">
+      <span class="drawer-title">Investigation History</span>
+      <button class="close-drawer-btn" id="close-drawer-btn">&times;</button>
+    </div>
+    <div class="history-list" id="history-list">
+      <p style="color: var(--text-muted); font-size: 0.8125rem; padding: 1rem; text-align: center;">No previous investigations.</p>
+    </div>
+  </aside>
+
+  <!-- Minimal Workspaces Modal -->
+  <div class="modal-overlay" id="workspaces-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h4 style="font-size: 1.0625rem; font-weight: 600;">AXION Workspaces</h4>
+        <button class="close-drawer-btn" id="close-modal-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          <a href="/docs#/Knowledge%20Graph" target="_blank" style="text-decoration: none; color: inherit; padding: 0.875rem; border: 1px solid var(--border-color); border-radius: 0.5rem; transition: all 0.15s ease;">
+            <div style="font-weight: 600; font-size: 0.9375rem; color: var(--accent-blue); margin-bottom: 0.25rem;">Knowledge Graph Explorer</div>
+            <div style="font-size: 0.8125rem; color: var(--text-secondary);">Query nodes, multi-domain relations, and bidirectional concept paths.</div>
+          </a>
+          <a href="/docs#/Component%209:%20Validated%20Knowledge%20Memory" target="_blank" style="text-decoration: none; color: inherit; padding: 0.875rem; border: 1px solid var(--border-color); border-radius: 0.5rem; transition: all 0.15s ease;">
+            <div style="font-weight: 600; font-size: 0.9375rem; color: var(--accent-blue); margin-bottom: 0.25rem;">Validated Knowledge Memory</div>
+            <div style="font-size: 0.8125rem; color: var(--text-secondary);">Inspect versioned Tier 4 findings, audit logs, and cascading dependency graphs.</div>
+          </a>
+          <a href="/docs#/Documents" target="_blank" style="text-decoration: none; color: inherit; padding: 0.875rem; border: 1px solid var(--border-color); border-radius: 0.5rem; transition: all 0.15s ease;">
+            <div style="font-weight: 600; font-size: 0.9375rem; color: var(--accent-blue); margin-bottom: 0.25rem;">Document Ingestion & Provenance</div>
+            <div style="font-size: 0.8125rem; color: var(--text-secondary);">Upload PDF papers and review bounding-box coordinate extractions.</div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
