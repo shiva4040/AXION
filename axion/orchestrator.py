@@ -154,11 +154,13 @@ class CognitivePipeline:
         hypothesis_gen: Optional[HypothesisGenerator] = None,
         tester: Optional[FullHypothesisTester] = None,
         memory: Optional[ValidatedKnowledgeMemory] = None,
+        acquisition_engine: Optional[Any] = None,
     ):
         self.transfer_engine = transfer_engine or TransferEngine()
         self.hypothesis_gen = hypothesis_gen or HypothesisGenerator()
         self.tester = tester or FullHypothesisTester()
         self.memory = memory or ValidatedKnowledgeMemory(persistence_path="axion_validated_memory.json")
+        self.acquisition_engine = acquisition_engine
         self._history: List[ResearchAnswer] = []
 
     def get_history(self) -> List[ResearchAnswer]:
@@ -172,6 +174,7 @@ class CognitivePipeline:
         query: str,
         document_id: Optional[str] = None,
         session: Optional[AsyncSession] = None,
+        enable_external_acquisition: bool = False,
     ) -> ResearchAnswer:
         """
         Executes the cognitive pipeline for a user question.
@@ -196,6 +199,21 @@ class CognitivePipeline:
                     "snippet": chk.text_content[:300],
                     "epistemic_tier": EpistemicTier.FACT_DOCUMENTED.value,
                 })
+
+        # Step 1b: Optional On-Demand Information Acquisition from External Sources
+        if enable_external_acquisition and self.acquisition_engine:
+            try:
+                from axion.acquisition.types import SearchRequest
+                acq_req = SearchRequest(query=query, max_results_per_source=2)
+                acq_res = await self.acquisition_engine.search(acq_req)
+                for adoc in acq_res.documents[:3]:
+                    doc_evidence.append({
+                        "source": f"External {adoc.source_name.upper()} ({adoc.doi or adoc.source_url or adoc.title[:30]})",
+                        "snippet": adoc.content[:250],
+                        "epistemic_tier": EpistemicTier.FACT_DOCUMENTED.value,
+                    })
+            except Exception as e:
+                logger.debug("On-demand acquisition skipped: %s", e)
 
         # Step 2: Retrieve domain knowledge bundles
         catalog = _get_benchmark_catalog()

@@ -16,6 +16,7 @@ from axion.api.routes import (
     validation,
     memory,
     investigation,
+    acquisition,
 )
 
 @asynccontextmanager
@@ -52,6 +53,7 @@ def create_app() -> FastAPI:
     app.include_router(validation.router, prefix="/api/v1")
     app.include_router(memory.router, prefix="/api/v1")
     app.include_router(investigation.router, prefix="/api/v1")
+    app.include_router(acquisition.router, prefix="/api/v1")
 
     # Static assets mounting & Minimal Homepage
     static_dir = Path(__file__).resolve().parent.parent / "static"
