@@ -45,6 +45,11 @@ export interface ResearchAnswer {
   investigation_id: string;
   query: string;
   answer: string;
+  direct_answer?: string;
+  important_points?: string[];
+  how_it_works?: ReasoningStep[];
+  final_takeaway?: string;
+  suggested_3d_scene?: string;
   epistemic_tier: string;
   domains_involved: string[];
   evidence_snippets: EvidenceSnippet[];

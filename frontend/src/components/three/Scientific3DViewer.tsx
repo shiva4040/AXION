@@ -2,16 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import {
   RotateCcw,
-  Maximize2,
-  Eye,
   Zap,
-  Info,
-  ChevronRight,
   Layers,
 } from 'lucide-react';
 import {
   ComponentMetadata,
   SceneModelData,
+  buildElectricMotorScene,
+  buildPhotosynthesisScene,
+  buildHydraulicLiftScene,
   buildSolarVehicleScene,
   buildCircuitScene,
   buildHydraulicScene,
@@ -26,7 +25,7 @@ interface Props {
 
 export const Scientific3DViewer: React.FC<Props> = ({ initialScene, queryContext }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [activeSceneKey, setActiveSceneKey] = useState<string>('solar_vehicle');
+  const [activeSceneKey, setActiveSceneKey] = useState<string>('electric_motor');
   const [selectedComp, setSelectedComp] = useState<ComponentMetadata | null>(null);
   const [flowActive, setFlowActive] = useState<boolean>(true);
   const [sceneTitle, setSceneTitle] = useState<string>('');
@@ -40,7 +39,7 @@ export const Scientific3DViewer: React.FC<Props> = ({ initialScene, queryContext
   const updateParticlesRef = useRef<((delta: number) => void) | null>(null);
   const componentsMapRef = useRef<Record<string, ComponentMetadata>>({});
 
-  // Auto-detect optimal scientific scene based on queryContext if provided
+  // Auto-detect optimal scientific scene based on queryContext or initialScene
   useEffect(() => {
     if (initialScene) {
       setActiveSceneKey(initialScene);
@@ -48,11 +47,17 @@ export const Scientific3DViewer: React.FC<Props> = ({ initialScene, queryContext
     }
     if (queryContext) {
       const q = queryContext.toLowerCase();
-      if (q.includes('solar') || q.includes('car') || q.includes('vehicle') || q.includes('drivetrain')) {
+      if (q.includes('motor') || q.includes('rotor') || q.includes('stator') || q.includes('electromagnet')) {
+        setActiveSceneKey('electric_motor');
+      } else if (q.includes('photosynthesis') || q.includes('chloroplast') || q.includes('plant') || q.includes('calvin')) {
+        setActiveSceneKey('photosynthesis');
+      } else if (q.includes('lift') || q.includes('pascal') || q.includes('hydraulic lift') || q.includes('jack')) {
+        setActiveSceneKey('hydraulic_lift');
+      } else if (q.includes('solar') || q.includes('car') || q.includes('vehicle') || q.includes('drivetrain')) {
         setActiveSceneKey('solar_vehicle');
       } else if (q.includes('circuit') || q.includes('resistor') || q.includes('ohm') || q.includes('current')) {
         setActiveSceneKey('circuit');
-      } else if (q.includes('hydraulic') || q.includes('pipe') || q.includes('fluid') || q.includes('poiseuille')) {
+      } else if (q.includes('pipe') || q.includes('fluid') || q.includes('poiseuille') || q.includes('viscous')) {
         setActiveSceneKey('hydraulic');
       } else if (q.includes('molecule') || q.includes('chemical') || q.includes('atom') || q.includes('bond')) {
         setActiveSceneKey('molecular');
@@ -137,11 +142,9 @@ export const Scientific3DViewer: React.FC<Props> = ({ initialScene, queryContext
       prevMouseY = e.clientY;
 
       if (isDragging && modelGroupRef.current) {
-        // Orbit rotation
         modelGroupRef.current.rotation.y += dx * 0.008;
         modelGroupRef.current.rotation.x += dy * 0.008;
       } else if (isPanning && cameraRef.current) {
-        // Pan
         cameraRef.current.position.x -= dx * 0.02;
         cameraRef.current.position.y += dy * 0.02;
       }
@@ -174,14 +177,12 @@ export const Scientific3DViewer: React.FC<Props> = ({ initialScene, queryContext
       const intersects = raycaster.intersectObjects(modelGroupRef.current.children, true);
 
       if (intersects.length > 0) {
-        // Find named mesh
         let obj: THREE.Object3D | null = intersects[0].object;
         while (obj && !obj.name && obj.parent !== modelGroupRef.current) {
           obj = obj.parent;
         }
         if (obj && obj.name && componentsMapRef.current[obj.name]) {
           setSelectedComp(componentsMapRef.current[obj.name]);
-          // Highlight mesh
           highlightMesh(obj);
         }
       }
@@ -235,13 +236,15 @@ export const Scientific3DViewer: React.FC<Props> = ({ initialScene, queryContext
   const loadSceneModel = (key: string) => {
     if (!sceneRef.current) return;
 
-    // Remove existing model group
     if (modelGroupRef.current) {
       sceneRef.current.remove(modelGroupRef.current);
     }
 
     let sceneData: SceneModelData;
-    if (key === 'solar_vehicle') sceneData = buildSolarVehicleScene();
+    if (key === 'electric_motor') sceneData = buildElectricMotorScene();
+    else if (key === 'photosynthesis') sceneData = buildPhotosynthesisScene();
+    else if (key === 'hydraulic_lift') sceneData = buildHydraulicLiftScene();
+    else if (key === 'solar_vehicle') sceneData = buildSolarVehicleScene();
     else if (key === 'circuit') sceneData = buildCircuitScene();
     else if (key === 'hydraulic') sceneData = buildHydraulicScene();
     else if (key === 'molecular') sceneData = buildMolecularScene();
@@ -255,20 +258,17 @@ export const Scientific3DViewer: React.FC<Props> = ({ initialScene, queryContext
     modelGroupRef.current = sceneData.group;
     sceneRef.current.add(sceneData.group);
 
-    // Reset camera to standard view
     resetCamera();
     setSelectedComp(null);
   };
 
   const highlightMesh = (targetMesh: THREE.Object3D) => {
-    // Pulse animation or highlight material
     targetMesh.scale.set(1.08, 1.08, 1.08);
     setTimeout(() => {
       targetMesh.scale.set(1, 1, 1);
     }, 250);
   };
 
-  // Camera presets
   const resetCamera = () => {
     if (!cameraRef.current || !modelGroupRef.current) return;
     cameraRef.current.position.set(10, 8, 10);
@@ -298,7 +298,7 @@ export const Scientific3DViewer: React.FC<Props> = ({ initialScene, queryContext
         <div className="flex items-center gap-2">
           <Layers className="w-4 h-4 text-blue-600" />
           <span className="text-xs font-semibold uppercase tracking-wider text-gray-700">
-            Interactive 3D System
+            Interactive 3D Physical Model
           </span>
           <span className="text-xs text-gray-400">|</span>
           <span className="text-xs font-medium text-gray-900">{sceneTitle}</span>
@@ -311,10 +311,13 @@ export const Scientific3DViewer: React.FC<Props> = ({ initialScene, queryContext
             onChange={(e) => setActiveSceneKey(e.target.value)}
             className="text-xs bg-white border border-gray-200 rounded-lg px-2.5 py-1 text-gray-700 font-medium hover:border-blue-500 focus:outline-none"
           >
+            <option value="electric_motor">Electric Motor (Lorentz Torque)</option>
+            <option value="photosynthesis">Photosynthesis (Chloroplast / Thylakoid)</option>
+            <option value="hydraulic_lift">Hydraulic Lift (Pascal Principle)</option>
             <option value="solar_vehicle">Solar Vehicle Drivetrain</option>
-            <option value="circuit">Electrical Circuit</option>
-            <option value="hydraulic">Hydraulic Hagen-Poiseuille</option>
-            <option value="molecular">Molecular Tetrahedral</option>
+            <option value="circuit">Electrical Circuit (Ohm)</option>
+            <option value="hydraulic">Hydraulic Continuum (Poiseuille)</option>
+            <option value="molecular">Molecular Tetrahedral (sp³)</option>
             <option value="cross_domain_graph">Cross-Domain Network</option>
           </select>
         </div>
@@ -363,7 +366,7 @@ export const Scientific3DViewer: React.FC<Props> = ({ initialScene, queryContext
           </button>
         </div>
 
-        {/* Flow Animation Toggle */}
+        {/* Dynamic Rotation / Motion Toggle */}
         <button
           onClick={() => setFlowActive(!flowActive)}
           className={`absolute bottom-3 left-3 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium backdrop-blur-sm shadow-xs transition-colors ${
@@ -373,7 +376,7 @@ export const Scientific3DViewer: React.FC<Props> = ({ initialScene, queryContext
           }`}
         >
           <Zap className="w-3.5 h-3.5" />
-          {flowActive ? 'Flow Active' : 'Flow Paused'}
+          {flowActive ? 'Motion & Flux Active' : 'Motion Paused'}
         </button>
 
         {/* Quick Hint */}
@@ -383,7 +386,7 @@ export const Scientific3DViewer: React.FC<Props> = ({ initialScene, queryContext
 
         {/* Selected Component Inspection Overlay Card */}
         {selectedComp && (
-          <div className="absolute top-3 right-3 w-80 bg-white/95 backdrop-blur-md border border-blue-200 rounded-xl p-4 shadow-md animation-fade-in text-left">
+          <div className="absolute top-3 right-3 w-80 bg-white/95 backdrop-blur-md border border-blue-200 rounded-xl p-4 shadow-md text-left z-20">
             <div className="flex items-start justify-between gap-2 border-b border-gray-100 pb-2 mb-2">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
@@ -424,7 +427,7 @@ export const Scientific3DViewer: React.FC<Props> = ({ initialScene, queryContext
             {selectedComp.connections && selectedComp.connections.length > 0 && (
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
-                  System Connections
+                  Interconnected Components
                 </span>
                 <div className="flex flex-wrap gap-1">
                   {selectedComp.connections.map((c) => (

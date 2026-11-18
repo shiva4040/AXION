@@ -18,6 +18,439 @@ export interface SceneModelData {
   updateParticles?: (delta: number) => void;
 }
 
+export function buildElectricMotorScene(): SceneModelData {
+  const group = new THREE.Group();
+  const components: Record<string, ComponentMetadata> = {};
+
+  // 1. Stator Casing & Structural Housing
+  const statorGeo = new THREE.CylinderGeometry(2.4, 2.4, 3.2, 32, 1, true);
+  const statorMat = new THREE.MeshStandardMaterial({
+    color: 0x64748b,
+    metalness: 0.7,
+    roughness: 0.3,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.5,
+  });
+  const stator = new THREE.Mesh(statorGeo, statorMat);
+  stator.rotation.x = Math.PI / 2;
+  stator.position.set(0, 1.6, 0);
+  stator.name = 'stator';
+  group.add(stator);
+
+  components['stator'] = {
+    id: 'stator',
+    name: 'Stator Magnetic Frame',
+    domain: 'Electrodynamics & Structural Mechanics',
+    functionDesc: 'The stationary outer frame that houses the permanent magnets or field windings, providing an enclosed low-reluctance magnetic flux path and mechanical containment.',
+    equations: ['\\oint \\vec{H} \\cdot d\\vec{l} = N I', '\\nabla \\cdot \\vec{B} = 0'],
+    connections: ['magnets', 'bearings'],
+  };
+
+  // 2. Permanent Magnetic Poles (North & South)
+  const magGeo = new THREE.BoxGeometry(0.5, 1.4, 2.8);
+  const northMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, metalness: 0.5, roughness: 0.3 }); // Red North
+  const southMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, metalness: 0.5, roughness: 0.3 }); // Blue South
+
+  const northPole = new THREE.Mesh(magGeo, northMat);
+  northPole.position.set(-1.8, 1.6, 0);
+  northPole.name = 'magnets';
+  group.add(northPole);
+
+  const southPole = new THREE.Mesh(magGeo, southMat);
+  southPole.position.set(1.8, 1.6, 0);
+  southPole.name = 'magnets';
+  group.add(southPole);
+
+  components['magnets'] = {
+    id: 'magnets',
+    name: 'Permanent Stator Magnets (North & South Poles)',
+    domain: 'Magnetostatics & Materials Physics',
+    functionDesc: 'Generates a strong, uniform transverse magnetic field (B-field) crossing the air gap between stator and rotor.',
+    equations: ['\\vec{B} = \\mu_0 (\\vec{H} + \\vec{M})', '\\Phi = \\iint \\vec{B} \\cdot d\\vec{A}'],
+    connections: ['stator', 'rotor'],
+  };
+
+  // 3. Rotating Assembly Group (Rotor + Shaft + Coils + Commutator)
+  const rotorGroup = new THREE.Group();
+  rotorGroup.position.set(0, 1.6, 0);
+  rotorGroup.rotation.x = Math.PI / 2;
+  group.add(rotorGroup);
+
+  // Central Drive Shaft
+  const shaftGeo = new THREE.CylinderGeometry(0.18, 0.18, 4.4, 24);
+  const shaftMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.85, roughness: 0.15 });
+  const shaft = new THREE.Mesh(shaftGeo, shaftMat);
+  shaft.name = 'shaft';
+  rotorGroup.add(shaft);
+
+  components['shaft'] = {
+    id: 'shaft',
+    name: 'Hardened Steel Drive Shaft',
+    domain: 'Mechanical Engineering & Machine Design',
+    functionDesc: 'Transfers the generated electromagnetic rotational torque directly to external mechanical loads.',
+    equations: ['P = \\tau \\cdot \\omega', '\\tau_{max} = \\frac{\\pi d^3}{16} \\tau_{shear}'],
+    connections: ['rotor', 'external_load'],
+  };
+
+  // Rotor Core (Laminated Armature)
+  const rotorGeo = new THREE.CylinderGeometry(1.2, 1.2, 2.2, 24);
+  const rotorMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.6, roughness: 0.4 });
+  const rotor = new THREE.Mesh(rotorGeo, rotorMat);
+  rotor.name = 'rotor';
+  rotorGroup.add(rotor);
+
+  components['rotor'] = {
+    id: 'rotor',
+    name: 'Laminated Armature Rotor',
+    domain: 'Electromagnetic Machines',
+    functionDesc: 'The rotating cylindrical assembly of laminated silicon steel sheets that channels magnetic flux and supports the copper windings.',
+    equations: ['\\tau = r \\times \\vec{F}', 'I_{moment} = \\frac{1}{2} M R^2'],
+    connections: ['shaft', 'coils', 'commutator'],
+  };
+
+  // Copper Windings / Electromagnetic Coils
+  const coilMat = new THREE.MeshStandardMaterial({ color: 0xb45309, metalness: 0.8, roughness: 0.2 });
+  const coil1 = new THREE.Mesh(new THREE.BoxGeometry(0.35, 2.3, 0.6), coilMat);
+  coil1.position.set(0, 0, 0.9);
+  coil1.name = 'coils';
+  rotorGroup.add(coil1);
+
+  const coil2 = new THREE.Mesh(new THREE.BoxGeometry(0.35, 2.3, 0.6), coilMat);
+  coil2.position.set(0, 0, -0.9);
+  coil2.name = 'coils';
+  rotorGroup.add(coil2);
+
+  const coil3 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.3, 0.35), coilMat);
+  coil3.position.set(0.9, 0, 0);
+  coil3.name = 'coils';
+  rotorGroup.add(coil3);
+
+  const coil4 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.3, 0.35), coilMat);
+  coil4.position.set(-0.9, 0, 0);
+  coil4.name = 'coils';
+  rotorGroup.add(coil4);
+
+  components['coils'] = {
+    id: 'coils',
+    name: 'Electromagnetic Armature Coils (Copper Windings)',
+    domain: 'Electrodynamics & Ampère-Lorentz Physics',
+    functionDesc: 'Carries electric current through the magnetic field, producing Lorentz forces perpendicular to both current and magnetic flux: F = I (L × B).',
+    equations: ['\\vec{F} = I (\\vec{L} \\times \\vec{B})', '\\tau = N I A B \\sin(\\theta)'],
+    connections: ['rotor', 'commutator'],
+  };
+
+  // Commutator & Carbon Brushes
+  const commGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.5, 16);
+  const commMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.7, roughness: 0.2 });
+  const commutator = new THREE.Mesh(commGeo, commMat);
+  commutator.position.set(0, 1.6, 0);
+  commutator.name = 'commutator';
+  rotorGroup.add(commutator);
+
+  components['commutator'] = {
+    id: 'commutator',
+    name: 'Split-Ring Commutator & Carbon Brushes',
+    domain: 'Electrical Machines & Switching Theory',
+    functionDesc: 'A mechanical rotary switch that reverses the direction of electric current in the rotor coils every 180 degrees, ensuring rotational torque remains unidirectional.',
+    equations: ['\\tau_{avg} = \\frac{2}{\\pi} \\tau_{peak}', 'f_{comm} = \\frac{p \\cdot n}{120}'],
+    connections: ['coils', 'external_power'],
+  };
+
+  // Magnetic Field Lines (Flux Arrows / Particles)
+  const fluxCount = 24;
+  const fluxGeo = new THREE.BufferGeometry();
+  const fluxPos = new Float32Array(fluxCount * 3);
+  for (let i = 0; i < fluxCount; i++) {
+    fluxPos[i * 3] = -1.5 + (i % 6) * 0.6;
+    fluxPos[i * 3 + 1] = 1.0 + Math.floor(i / 6) * 0.4;
+    fluxPos[i * 3 + 2] = (Math.random() - 0.5) * 1.8;
+  }
+  fluxGeo.setAttribute('position', new THREE.BufferAttribute(fluxPos, 3));
+  const fluxMat = new THREE.PointsMaterial({ color: 0x38bdf8, size: 0.12, transparent: true, opacity: 0.8 });
+  const fluxParticles = new THREE.Points(fluxGeo, fluxMat);
+  group.add(fluxParticles);
+
+  // Dynamic Animation: Rotor Rotation & Magnetic Flux Oscillation
+  const updateParticles = (delta: number) => {
+    rotorGroup.rotation.y += delta * 2.5; // Smooth mechanical shaft rotation
+    const posAttr = fluxGeo.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < fluxCount; i++) {
+      let x = posAttr.getX(i);
+      x += delta * 1.5;
+      if (x > 1.6) x = -1.6;
+      posAttr.setX(i, x);
+    }
+    posAttr.needsUpdate = true;
+  };
+
+  return {
+    title: 'DC Electric Motor Electromagnetic Core',
+    description: 'Electromechanical energy conversion: Electric current through rotor coils interacts with stator magnetic flux to generate continuous rotational torque via Lorentz forces.',
+    group,
+    components,
+    updateParticles,
+  };
+}
+
+export function buildPhotosynthesisScene(): SceneModelData {
+  const group = new THREE.Group();
+  const components: Record<string, ComponentMetadata> = {};
+
+  // 1. Chloroplast Double Membrane Envelope
+  const envelopeGeo = new THREE.SphereGeometry(3.2, 32, 24);
+  envelopeGeo.scale(1.4, 0.7, 1.0);
+  const envelopeMat = new THREE.MeshPhysicalMaterial({
+    color: 0x10b981,
+    transparent: true,
+    opacity: 0.22,
+    roughness: 0.2,
+    transmission: 0.8,
+    side: THREE.DoubleSide,
+  });
+  const envelope = new THREE.Mesh(envelopeGeo, envelopeMat);
+  envelope.position.set(0, 1.8, 0);
+  envelope.name = 'envelope';
+  group.add(envelope);
+
+  components['envelope'] = {
+    id: 'envelope',
+    name: 'Chloroplast Double-Membrane Envelope',
+    domain: 'Cellular Biochemistry & Membrane Biophysics',
+    functionDesc: 'Selectively permeable lipid bilayer regulating metabolite transport (CO2, triose phosphates, ATP) between the cytosol and stroma.',
+    equations: ['J = -P (C_{in} - C_{out})', '\\Delta G = \\Delta H - T \\Delta S'],
+    connections: ['stroma'],
+  };
+
+  // 2. Thylakoid Grana (Stacked Membrane Discs)
+  const discGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.14, 24);
+  const thylakoidMat = new THREE.MeshStandardMaterial({ color: 0x047857, roughness: 0.4 });
+
+  const granaStacks = [
+    [-1.6, 0],
+    [-0.5, 0.8],
+    [0.6, -0.6],
+    [1.8, 0.4],
+  ];
+
+  granaStacks.forEach(([gx, gz], sIdx) => {
+    for (let i = 0; i < 5; i++) {
+      const disc = new THREE.Mesh(discGeo, thylakoidMat);
+      disc.position.set(gx, 1.2 + i * 0.22, gz);
+      disc.name = 'thylakoids';
+      group.add(disc);
+    }
+  });
+
+  components['thylakoids'] = {
+    id: 'thylakoids',
+    name: 'Thylakoid Membrane Grana (Light-Dependent Site)',
+    domain: 'Biophysics & Photochemistry',
+    functionDesc: 'Folded membrane stacks containing chlorophyll pigment complexes where solar photon energy is harnessed to drive water photolysis and generate a proton gradient.',
+    equations: ['2\\text{H}_2\\text{O} + 4h\\nu \\longrightarrow \\text{O}_2 + 4\\text{H}^+ + 4e^-', '\\Delta p = \\Delta \\psi - 59 \\Delta \\text{pH}'],
+    connections: ['photosystems', 'atp_synthase'],
+  };
+
+  // 3. Reaction Centers (Photosystems I and II)
+  const psGeo = new THREE.BoxGeometry(0.4, 0.3, 0.4);
+  const psMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.6, roughness: 0.2 });
+  const ps1 = new THREE.Mesh(psGeo, psMat);
+  ps1.position.set(-1.6, 2.35, 0);
+  ps1.name = 'photosystems';
+  group.add(ps1);
+
+  const ps2 = new THREE.Mesh(psGeo, psMat);
+  ps2.position.set(1.8, 2.35, 0.4);
+  ps2.name = 'photosystems';
+  group.add(ps2);
+
+  components['photosystems'] = {
+    id: 'photosystems',
+    name: 'Photosystems II & I Reaction Centers (P680 & P700)',
+    domain: 'Quantum Biology & Resonance Energy Transfer',
+    functionDesc: 'Specialized chlorophyll a dimers that undergo charge separation upon photon absorption, transferring excited electrons to plastoquinone.',
+    equations: ['E_{photon} = h \\nu = \\frac{hc}{\\lambda}', 'k_{FRET} = \\frac{1}{\\tau_D} \\left(\\frac{R_0}{r}\\right)^6'],
+    connections: ['thylakoids', 'stroma'],
+  };
+
+  // 4. ATP Synthase Molecular Complex
+  const atpGeo = new THREE.CylinderGeometry(0.3, 0.35, 0.6, 16);
+  const atpMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.4, roughness: 0.3 });
+  const atpSynthase = new THREE.Mesh(atpGeo, atpMat);
+  atpSynthase.position.set(0.6, 2.45, -0.6);
+  atpSynthase.name = 'atp_synthase';
+  group.add(atpSynthase);
+
+  components['atp_synthase'] = {
+    id: 'atp_synthase',
+    name: 'CF₀-CF₁ ATP Synthase Rotary Motor',
+    domain: 'Bioenergetics & Chemiosmosis',
+    functionDesc: 'Utilizes the high proton motive force across the thylakoid membrane to rotate catalytic subunits and synthesize ATP from ADP and Pi.',
+    equations: ['\\text{ADP} + \\text{P}_i + 3\\text{H}^+_{lumen} \\rightleftharpoons \\text{ATP} + \\text{H}_2\\text{O} + 3\\text{H}^+_{stroma}'],
+    connections: ['thylakoids', 'stroma'],
+  };
+
+  // 5. Stroma & Calvin Cycle Fluid
+  components['stroma'] = {
+    id: 'stroma',
+    name: 'Aqueous Stroma (Calvin Cycle / Carbon Fixation)',
+    domain: 'Enzymology & Organic Chemistry',
+    functionDesc: 'The protein-rich fluid surrounding thylakoids where the enzyme RuBisCO fixes atmospheric CO2 into 3-phosphoglycerate and synthesizes glucose.',
+    equations: ['\\text{RuBP} + \\text{CO}_2 + \\text{H}_2\\text{O} \\xrightarrow{\\text{RuBisCO}} 2 (3\\text{-PGA})', '6\\text{CO}_2 + 18\\text{ATP} + 12\\text{NADPH} \\to \\text{C}_6\\text{H}_{12}\\text{O}_6'],
+    connections: ['thylakoids', 'envelope'],
+  };
+
+  // Incoming Solar Photons (Animated Light Packets)
+  const photonCount = 36;
+  const photonGeo = new THREE.BufferGeometry();
+  const photonPos = new Float32Array(photonCount * 3);
+  for (let i = 0; i < photonCount; i++) {
+    photonPos[i * 3] = (Math.random() - 0.5) * 4;
+    photonPos[i * 3 + 1] = 4 + Math.random() * 2;
+    photonPos[i * 3 + 2] = (Math.random() - 0.5) * 3;
+  }
+  photonGeo.setAttribute('position', new THREE.BufferAttribute(photonPos, 3));
+  const photonMat = new THREE.PointsMaterial({ color: 0xfef08a, size: 0.16, transparent: true, opacity: 0.9 });
+  const photons = new THREE.Points(photonGeo, photonMat);
+  group.add(photons);
+
+  const updateParticles = (delta: number) => {
+    const attr = photonGeo.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < photonCount; i++) {
+      let y = attr.getY(i) - delta * 3.0;
+      if (y < 1.0) y = 5.5 + Math.random();
+      attr.setY(i, y);
+    }
+    attr.needsUpdate = true;
+  };
+
+  return {
+    title: 'Chloroplast Photochemical & Calvin Cycle System',
+    description: 'Biochemical energy conversion: Solar photons excite chlorophyll electrons in thylakoid membranes, generating ATP and NADPH to fix atmospheric CO₂ into carbohydrates.',
+    group,
+    components,
+    updateParticles,
+  };
+}
+
+export function buildHydraulicLiftScene(): SceneModelData {
+  const group = new THREE.Group();
+  const components: Record<string, ComponentMetadata> = {};
+
+  // 1. Narrow Input Cylinder (Area A₁)
+  const inCylGeo = new THREE.CylinderGeometry(0.4, 0.4, 2.5, 24, 1, true);
+  const cylMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.6, roughness: 0.3, transparent: true, opacity: 0.7 });
+  const inCyl = new THREE.Mesh(inCylGeo, cylMat);
+  inCyl.position.set(-2.5, 1.25, 0);
+  inCyl.name = 'input_piston';
+  group.add(inCyl);
+
+  // Narrow Input Piston Head
+  const inPistGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.5, 24);
+  const pistMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.8, roughness: 0.2 });
+  const inPiston = new THREE.Mesh(inPistGeo, pistMat);
+  inPiston.position.set(-2.5, 1.6, 0);
+  inPiston.name = 'input_piston';
+  group.add(inPiston);
+
+  components['input_piston'] = {
+    id: 'input_piston',
+    name: 'Input Piston (Small Area A₁)',
+    domain: 'Hydrostatics & Fluid Mechanics',
+    functionDesc: 'A small-area piston where a modest external input force F₁ is applied, creating a uniform hydrostatic fluid pressure P = F₁ / A₁.',
+    equations: ['P = \\frac{F_1}{A_1}', 'A_1 = \\pi r_1^2'],
+    connections: ['hydraulic_fluid', 'output_cylinder'],
+  };
+
+  // 2. Wide Output Cylinder (Area A₂)
+  const outCylGeo = new THREE.CylinderGeometry(1.4, 1.4, 2.5, 28, 1, true);
+  const outCyl = new THREE.Mesh(outCylGeo, cylMat);
+  outCyl.position.set(1.8, 1.25, 0);
+  outCyl.name = 'output_cylinder';
+  group.add(outCyl);
+
+  // Wide Output Piston Head
+  const outPistGeo = new THREE.CylinderGeometry(1.38, 1.38, 0.5, 28);
+  const outPiston = new THREE.Mesh(outPistGeo, pistMat);
+  outPiston.position.set(1.8, 1.4, 0);
+  outPiston.name = 'output_cylinder';
+  group.add(outPiston);
+
+  components['output_cylinder'] = {
+    id: 'output_cylinder',
+    name: 'Output Cylinder & Ram (Large Area A₂)',
+    domain: 'Fluid Power & Mechanical Systems',
+    functionDesc: 'A large-area cylinder that receives the transmitted hydrostatic pressure and produces an amplified lifting force: F₂ = P × A₂ = F₁ (A₂ / A₁).',
+    equations: ['F_2 = P \\cdot A_2 = F_1 \\left(\\frac{A_2}{A_1}\\right)', '\\text{Mechanical Advantage} = \\frac{A_2}{A_1} = \\left(\\frac{r_2}{r_1}\\right)^2'],
+    connections: ['hydraulic_fluid', 'lift_platform'],
+  };
+
+  // 3. Fluid Manifold / Connecting Base
+  const baseManifoldGeo = new THREE.BoxGeometry(5.2, 0.4, 1.2);
+  const manifoldMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.5, roughness: 0.4 });
+  const manifold = new THREE.Mesh(baseManifoldGeo, manifoldMat);
+  manifold.position.set(-0.35, 0.2, 0);
+  group.add(manifold);
+
+  // 4. Incompressible Hydraulic Fluid (Visualized inside manifold & cylinders)
+  const fluidMat = new THREE.MeshPhysicalMaterial({
+    color: 0x0284c7,
+    transmission: 0.7,
+    transparent: true,
+    opacity: 0.85,
+    roughness: 0.1,
+  });
+  const fluidBody = new THREE.Mesh(new THREE.BoxGeometry(5.0, 0.32, 0.9), fluidMat);
+  fluidBody.position.set(-0.35, 0.2, 0);
+  fluidBody.name = 'hydraulic_fluid';
+  group.add(fluidBody);
+
+  components['hydraulic_fluid'] = {
+    id: 'hydraulic_fluid',
+    name: 'Incompressible Hydraulic Fluid (Pascal’s Medium)',
+    domain: 'Continuum Mechanics & Pascal’s Principle',
+    functionDesc: 'An incompressible fluid transmits applied hydrostatic pressure undiminished and instantaneously to every portion of the fluid and cylinder walls.',
+    equations: ['P_1 = P_2 = \\text{constant}', '\\beta = -V \\frac{dP}{dV} \\to \\infty \\quad (\\text{incompressible})'],
+    connections: ['input_piston', 'output_cylinder'],
+  };
+
+  // 5. Heavy-Duty Lift Platform
+  const platGeo = new THREE.BoxGeometry(3.6, 0.2, 2.2);
+  const platMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7, roughness: 0.3 });
+  const platform = new THREE.Mesh(platGeo, platMat);
+  platform.position.set(1.8, 1.75, 0);
+  platform.name = 'lift_platform';
+  group.add(platform);
+
+  components['lift_platform'] = {
+    id: 'lift_platform',
+    name: 'Structural Load Platform',
+    domain: 'Statics & Structural Equilibrium',
+    functionDesc: 'Supports heavy external payload (e.g., motor vehicle or industrial equipment) elevated by the output ram.',
+    equations: ['W = F_1 \\cdot d_1 = F_2 \\cdot d_2', 'd_2 = d_1 \\left(\\frac{A_1}{A_2}\\right)'],
+    connections: ['output_cylinder'],
+  };
+
+  // Dynamic Piston Displacement Animation
+  let oscTime = 0;
+  const updateParticles = (delta: number) => {
+    oscTime += delta * 1.5;
+    const disp = Math.sin(oscTime) * 0.25;
+    inPiston.position.y = 1.6 - disp;
+    // Area ratio approx 1 : 12, so displacement ratio is 12 : 1
+    outPiston.position.y = 1.4 + disp * (0.4 / 1.4) ** 2;
+    platform.position.y = 1.75 + disp * (0.4 / 1.4) ** 2;
+  };
+
+  return {
+    title: 'Hydraulic Lift Force-Multiplier System',
+    description: 'Pascal’s Principle in action: Hydrostatic pressure transmitted through incompressible fluid creates proportional force amplification: F₂ = F₁ (A₂ / A₁).',
+    group,
+    components,
+    updateParticles,
+  };
+}
+
 export function buildSolarVehicleScene(): SceneModelData {
   const group = new THREE.Group();
   const components: Record<string, ComponentMetadata> = {};
@@ -57,7 +490,6 @@ export function buildSolarVehicleScene(): SceneModelData {
   panel.castShadow = true;
   group.add(panel);
 
-  // Solar grid lines
   const gridHelper = new THREE.GridHelper(4.6, 12, 0x38bdf8, 0x1e3a8a);
   gridHelper.position.set(0, 1.46, 0);
   gridHelper.scale.set(1, 1, 0.45);
@@ -134,7 +566,7 @@ export function buildSolarVehicleScene(): SceneModelData {
     [2, 0.5, 1.5],
     [2, 0.5, -1.5],
   ];
-  wheelPositions.forEach((pos, idx) => {
+  wheelPositions.forEach((pos) => {
     const w = new THREE.Mesh(wheelGeo, wheelMat);
     w.rotation.x = Math.PI / 2;
     w.position.set(pos[0], pos[1], pos[2]);
@@ -212,7 +644,6 @@ export function buildCircuitScene(): SceneModelData {
   const group = new THREE.Group();
   const components: Record<string, ComponentMetadata> = {};
 
-  // Board Base
   const baseGeo = new THREE.BoxGeometry(8, 0.3, 5);
   const baseMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.6 });
   const base = new THREE.Mesh(baseGeo, baseMat);
@@ -220,7 +651,6 @@ export function buildCircuitScene(): SceneModelData {
   base.receiveShadow = true;
   group.add(base);
 
-  // 1. DC Voltage Source (Battery)
   const battGeo = new THREE.CylinderGeometry(0.6, 0.6, 1.8, 20);
   const battMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, metalness: 0.6, roughness: 0.3 });
   const batt = new THREE.Mesh(battGeo, battMat);
@@ -236,7 +666,6 @@ export function buildCircuitScene(): SceneModelData {
     connections: ['conductors', 'switch'],
   };
 
-  // 2. Precision Ceramic Resistor
   const resGeo = new THREE.CylinderGeometry(0.35, 0.35, 1.5, 16);
   const resMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.5 });
   const res = new THREE.Mesh(resGeo, resMat);
@@ -253,7 +682,6 @@ export function buildCircuitScene(): SceneModelData {
     connections: ['conductors', 'switch'],
   };
 
-  // 3. Knife Switch
   const swGeo = new THREE.BoxGeometry(0.8, 0.4, 0.8);
   const swMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8, roughness: 0.2 });
   const sw = new THREE.Mesh(swGeo, swMat);
@@ -269,7 +697,6 @@ export function buildCircuitScene(): SceneModelData {
     connections: ['dc_source', 'resistor'],
   };
 
-  // 4. Conductive Traces / Copper Wires
   const traceMat = new THREE.MeshStandardMaterial({ color: 0xb45309, metalness: 0.9, roughness: 0.1 });
   const wire1 = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.05, 0.15), traceMat);
   wire1.position.set(0, 0.05, -1);
@@ -293,7 +720,6 @@ export function buildCircuitScene(): SceneModelData {
     connections: ['dc_source', 'resistor', 'switch'],
   };
 
-  // 5. Current Particle Animation
   const pCount = 30;
   const pGeo = new THREE.BufferGeometry();
   const posArr = new Float32Array(pCount * 3);
@@ -337,7 +763,6 @@ export function buildHydraulicScene(): SceneModelData {
   const group = new THREE.Group();
   const components: Record<string, ComponentMetadata> = {};
 
-  // Transparent Pipe Geometry
   const pipeGeo = new THREE.CylinderGeometry(1.2, 1.2, 8, 32, 1, true);
   const pipeMat = new THREE.MeshPhysicalMaterial({
     color: 0x93c5fd,
@@ -362,7 +787,6 @@ export function buildHydraulicScene(): SceneModelData {
     connections: ['pressure_gradient', 'fluid_core'],
   };
 
-  // Manometer 1 (High Pressure Inlet)
   const mano1Geo = new THREE.CylinderGeometry(0.2, 0.2, 2.5, 16);
   const manoMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 });
   const mano1 = new THREE.Mesh(mano1Geo, manoMat);
@@ -370,7 +794,6 @@ export function buildHydraulicScene(): SceneModelData {
   mano1.name = 'pressure_inlet';
   group.add(mano1);
 
-  // Manometer 2 (Low Pressure Outlet)
   const mano2Geo = new THREE.CylinderGeometry(0.2, 0.2, 1.2, 16);
   const mano2 = new THREE.Mesh(mano2Geo, manoMat);
   mano2.position.set(2.5, 2.15, 0);
@@ -386,7 +809,6 @@ export function buildHydraulicScene(): SceneModelData {
     connections: ['pipe'],
   };
 
-  // Fluid Velocity Profile Parabolic Vectors
   const vectorGroup = new THREE.Group();
   for (let r = -0.9; r <= 0.9; r += 0.3) {
     const vel = 1.5 * (1 - (r * r) / (1.2 * 1.2));
@@ -427,7 +849,6 @@ export function buildMolecularScene(): SceneModelData {
   const oxygenMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.3, metalness: 0.1 });
   const hydrogenMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.2 });
 
-  // Central Silicon / Carbon atom
   const centerAtom = new THREE.Mesh(atomGeo, carbonMat);
   centerAtom.position.set(0, 1.5, 0);
   centerAtom.name = 'central_atom';
@@ -441,7 +862,6 @@ export function buildMolecularScene(): SceneModelData {
     connections: ['covalent_bonds', 'ligand_atoms'],
   };
 
-  // Tetrahedral coordinates
   const coords = [
     [1.4, 2.5, 1.4],
     [-1.4, 2.5, -1.4],
@@ -456,7 +876,6 @@ export function buildMolecularScene(): SceneModelData {
     atom.name = `ligand_${idx}`;
     group.add(atom);
 
-    // Bond cylinder
     const start = new THREE.Vector3(0, 1.5, 0);
     const end = new THREE.Vector3(c[0], c[1], c[2]);
     const dir = new THREE.Vector3().subVectors(end, start);
@@ -516,7 +935,6 @@ export function buildCrossDomainGraphScene(): SceneModelData {
     };
   });
 
-  // Cross-domain Transfer Edges
   const edgeMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.6 });
   for (let i = 0; i < domains.length; i++) {
     for (let j = i + 1; j < domains.length; j++) {
