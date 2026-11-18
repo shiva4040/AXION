@@ -369,11 +369,9 @@ class InformationAcquisitionEngine:
                 # Extract into Knowledge Graph if requested
                 if extract_knowledge_graph and db_chunks:
                     for chunk in db_chunks:
-                        extraction = extractor.extract_from_text(
-                            text=chunk.text_content,
-                            domain=doc.metadata.get("primary_category", "general_science"),
-                            document_id=db_doc.id,
-                            chunk_id=chunk.id
+                        extraction = await extractor.extract_from_chunk(
+                            chunk_text=chunk.text_content,
+                            domain=doc.metadata.get("primary_category", "general_science")
                         )
                         res = await graph_store.add_extraction_result(
                             extraction=extraction,

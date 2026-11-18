@@ -1,0 +1,154 @@
+{
+  "timestamp": "2026-11-18T15:56:48.985186+00:00",
+  "query": "small solar electric vehicle powertrain design photovoltaic aerodynamics",
+  "search_results": [
+    {
+      "index": 1,
+      "title": "Deep Reinforcement Learning for Solar-Powered Electric Vehicle Charging Stations",
+      "authors": [
+        "Mlungisi Ntombela"
+      ],
+      "source": "crossref",
+      "source_url": "https://doi.org/10.3390/solar6050065",
+      "doi": "10.3390/solar6050065",
+      "publication_date": "2026-10-02",
+      "access_status": "open_access",
+      "license": "https://creativecommons.org/licenses/by/4.0/",
+      "relevance_score": 0.45,
+      "content_snippet": "The rapid growth of electric vehicle (EV) adoption has significantly increased electricity demand, creating operational challenges for power distribution networks and accelerating the need for sustain"
+    },
+    {
+      "index": 2,
+      "title": "Novel solar powered electric vehicle charging station with the capability of vehicle-to-grid",
+      "authors": [
+        "Hassan Fathabadi"
+      ],
+      "source": "crossref",
+      "source_url": "https://doi.org/10.1016/j.solener.2016.11.037",
+      "doi": "10.1016/j.solener.2016.11.037",
+      "publication_date": "2017",
+      "access_status": "metadata_only",
+      "license": "https://www.elsevier.com/tdm/userlicense/1.0/",
+      "relevance_score": 0.375,
+      "content_snippet": "Metadata record for DOI: 10.1016/j.solener.2016.11.037. Journal: Solar Energy."
+    },
+    {
+      "index": 3,
+      "title": "Observation and Modeling of Small Spatial Structures of Solar Radio Noise Storms using the uGMRT",
+      "authors": [
+        "Surajit Mondal",
+        "Peijin Zhang",
+        "Devojyoti Kansabanik"
+      ],
+      "source": "arxiv",
+      "source_url": "https://arxiv.org/abs/2507.08093v1",
+      "doi": "10.1007/s11207-025-02519-8",
+      "publication_date": "2025-07-10T18:10:28Z",
+      "access_status": "open_access",
+      "license": "arXiv Perpetual Non-Exclusive License",
+      "relevance_score": 0.35,
+      "content_snippet": "One of the most commonly observed solar radio sources in the metric and decametric wavelengths is the solar noise storm. These are generally associated with active regions and are believed to be power"
+    },
+    {
+      "index": 4,
+      "title": "Electric Vehicle Operating on Solar Energy",
+      "authors": [
+        "Jomu M George",
+        "Steffy Tresa Loui"
+      ],
+      "source": "crossref",
+      "source_url": "https://doi.org/10.21275/sr24704110501",
+      "doi": "10.21275/sr24704110501",
+      "publication_date": "2024-07-05",
+      "access_status": "metadata_only",
+      "license": "Proprietary / Subscription",
+      "relevance_score": 0.325,
+      "content_snippet": "Metadata record for DOI: 10.21275/sr24704110501. Journal: International Journal of Science and Research (IJSR)."
+    },
+    {
+      "index": 5,
+      "title": "The Vayve Eva is set to become India&#x27;s first solar -powered small...",
+      "authors": [],
+      "source": "web_search",
+      "source_url": "https://www.cardekho.com/vayve-mobility/eva",
+      "doi": null,
+      "publication_date": null,
+      "access_status": "open_access",
+      "license": "Public Web Excerpt",
+      "relevance_score": 0.3,
+      "content_snippet": "The Vayve Eva is set to become India&#x27;s first solar -powered small electric car, which will be showcased at the Bharat Mobility Global Expo 2025."
+    }
+  ],
+  "ingestion": {
+    "ingested_count": 3,
+    "document_ids": [
+      "adfd9aa5-7b6b-4396-80ad-2c121220d865",
+      "901d7958-f808-4ca6-bbc9-85df93b786d3",
+      "bd4f10e0-0d48-4b72-9082-b427347c2b9c"
+    ],
+    "chunks_created": 3,
+    "graph_entities": 0,
+    "graph_relations": 0
+  },
+  "domains_analyzed": [
+    "physics:electrodynamics_photovoltaics",
+    "engineering:electrical_power",
+    "engineering:vehicle_mechanics",
+    "mathematics:energy_conservation"
+  ],
+  "composed_system": {
+    "composition_id": "comp-solar-ev-001",
+    "equations": [
+      "P_pv = G * A_pv * eta_pv",
+      "tau_m = K_t * I_m",
+      "P_in = P_pv * eta_mppt",
+      "P_net = P_in - P_elec_ele",
+      "F_rr = C_rr * m_veh * g",
+      "F_aero = 0.5 * rho * C_d * A_front * v**2",
+      "P_mech = (F_rr + F_aero) * v",
+      "P_elec_ene = P_mech / eta_drive",
+      "Delta_E = (P_in - P_elec_ene) * t_cruise"
+    ],
+    "variables_count": 25,
+    "assumptions_count": 12,
+    "constraints_count": 8
+  },
+  "applicability_check": {
+    "verdict": "REJECTED",
+    "confidence": 0.95,
+    "rationale": "Transfer REJECTED due to 2 fundamental violation(s): Structural incompatibility: Proposed source concept 'Generated PV Power' missing in target domain.; Dimensional violation: Dimensional mismatch: LHS [[M] [L]^2 [T]^-3] != RHS [Unknown]..",
+    "passed_stages": [
+      "physical_assumptions",
+      "boundary_conditions",
+      "contradiction_check"
+    ],
+    "failed_stages": [
+      "structural_compatibility",
+      "dimensional_homogeneity"
+    ]
+  },
+  "design_calculations": {
+    "P_pv_raw_w": 352.0,
+    "P_in_conditioned_w": 334.4,
+    "F_rr_n": 14.122,
+    "F_aero_n": 14.864,
+    "F_total_n": 28.986,
+    "P_mech_req_w": 322.06,
+    "P_elec_draw_w": 368.92,
+    "P_net_balance_w": -34.52,
+    "v_equilibrium_kmh": 38.08,
+    "E_batt_nominal_wh": 922.29,
+    "m_battery_kg": 6.59
+  },
+  "validation_experiment": {
+    "verdict": "SUPPORTED",
+    "rmse": 0.0046,
+    "r2": 1.0,
+    "mre": 0.0
+  },
+  "rag_baseline": {
+    "retrieved_chunks_count": 2,
+    "abstained": false,
+    "answer_preview": "Mock synthesis for: \nYou are the AXION Research Assistant Baseline system.\nAnswer the following user question using ONLY [Citation: doc_mock_01, p.1]"
+  }
+}
