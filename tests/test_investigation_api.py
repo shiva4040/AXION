@@ -103,3 +103,54 @@ async def test_investigation_ask_and_history(test_db_session):
         # Non-existent ID returns 404
         not_found_resp = await ac.get("/api/v1/investigation/nonexistent_id_123")
         assert not_found_resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_investigation_regression_safe_indexing():
+    """
+    Regression test suite specifically verifying that no IndexError: list index out of range
+    or unhandled exceptions occur across diverse, edge-case, and out-of-domain queries.
+    """
+    app = create_app()
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        queries = [
+            # 1. Previously crashing transfer queries
+            "Can we transfer heat like electricity?",
+            "What is an analog computer?",
+            "Map the solar system",
+            "How does a suspension bridge work?",
+            "Can you bridge electrical circuits with fluid pipe flow?",
+            # 2. Specific topic inquiries with interactive scenes
+            "How does an electric motor work?",
+            "What is photosynthesis?",
+            "How does a hydraulic lift work?",
+            "How does a solar car drivetrain work?",
+            # 3. Single-domain & physical relations
+            "What is Ohm's Law and electrical resistance?",
+            "Explain Hagen-Poiseuille fluid flow in pipes",
+            "What is thermal conduction?",
+            # 4. Out-of-domain, vague, or unknown concepts
+            "Why is the sky blue?",
+            "What is dark matter in the universe?",
+            "How do compilers optimize bytecode?",
+            "asdfghjkl 99999",
+            # 5. Short or single-word queries
+            "energy",
+            "gravity",
+            "entropy"
+        ]
+
+        for q in queries:
+            resp = await ac.post("/api/v1/investigation/ask", json={"query": q})
+            assert resp.status_code == 200, f"Query '{q}' failed with status {resp.status_code}: {resp.text}"
+            data = resp.json()
+            assert "investigation_id" in data
+            assert len(data["answer"]) > 0
+            assert "direct_answer" in data
+            assert len(data["important_points"]) > 0
+            assert len(data["how_it_works"]) > 0
+            assert "suggested_3d_scene" in data
+            assert data["suggested_3d_scene"] in [
+                "electric_motor", "photosynthesis", "hydraulic_lift",
+                "solar_vehicle", "circuit", "hydraulic", "molecular", "cross_domain_graph"
+            ]

@@ -1,9 +1,12 @@
+import logging
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from axion.database.connection import get_db_session
 from axion.orchestrator import CognitivePipeline, ResearchAnswer
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/investigation", tags=["Investigation & Cognitive Pipeline"])
 pipeline = CognitivePipeline()
@@ -32,6 +35,7 @@ async def ask_question(
             session=session,
         )
     except Exception as e:
+        logger.exception("Investigation pipeline error processing query '%s'", req.query)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/history", response_model=List[ResearchAnswer])
