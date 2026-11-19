@@ -11,7 +11,10 @@ export async function askQuestion(query: string, document_id?: string): Promise<
   });
   if (!res.ok) {
     const errorText = await res.text();
-    throw new Error(`Investigation failed (${res.status}): ${errorText}`);
+    if (res.status === 502 || res.status === 504) {
+      throw new Error(`Backend server unreachable (${res.status}). Please ensure the AXION backend server is running at http://127.0.0.1:8000.`);
+    }
+    throw new Error(`Investigation failed (${res.status}): ${errorText || res.statusText}`);
   }
   return res.json();
 }
