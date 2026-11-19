@@ -48,12 +48,14 @@ class PipelineCoordinator:
         acquisition_engine: Optional[InformationAcquisitionEngine] = None,
         memory: Optional[ValidatedKnowledgeMemory] = None,
         default_timeout: float = 10.0,
+        corpus_chunks: Optional[List[AcquiredChunk]] = None,
     ):
         self.session = db_session
         self.provider = provider or get_llm_provider()
         self.acquisition_engine = acquisition_engine
         self.memory = memory
         self.default_timeout = default_timeout
+        self.corpus_chunks = corpus_chunks or []
 
         # Stage workers
         self.stage01 = MinimalQuestionProcessor(provider=self.provider)
@@ -62,6 +64,7 @@ class PipelineCoordinator:
             provider=self.provider,
             acquisition_engine=self.acquisition_engine,
             memory=self.memory,
+            corpus_chunks=self.corpus_chunks,
         )
         self.stage03 = MinimalEvidenceExtractor(provider=self.provider)
         self.stage04 = MinimalKnowledgeComposer()
@@ -93,6 +96,7 @@ class PipelineCoordinator:
         top_k: int = 5,
         min_similarity: float = 0.20,
         enable_external: bool = False,
+        corpus_chunks: Optional[List[AcquiredChunk]] = None,
     ) -> AcquisitionPayload:
         """Stage 02: Knowledge Acquisition Coordination."""
         return await self.stage02.acquire_knowledge(
@@ -100,6 +104,7 @@ class PipelineCoordinator:
             top_k=top_k,
             min_similarity=min_similarity,
             enable_external=enable_external,
+            corpus_chunks=corpus_chunks,
         )
 
     async def run_stage_03(
@@ -205,6 +210,7 @@ class PipelineCoordinator:
         min_similarity: float = 0.20,
         enable_external: bool = False,
         timeout_seconds: Optional[float] = None,
+        corpus_chunks: Optional[List[AcquiredChunk]] = None,
     ) -> PipelineAnswerResponse:
         """
         Executes the full eight-stage pipeline with strict per-query timeout enforcement
@@ -236,6 +242,7 @@ class PipelineCoordinator:
                 top_k=top_k,
                 min_similarity=min_similarity,
                 enable_external=enable_external,
+                corpus_chunks=corpus_chunks,
             )
             s2_dur = (time.time() - s2_t0) * 1000.0
             logs.append(StageExecutionLog(

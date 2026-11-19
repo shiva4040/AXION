@@ -1,3 +1,4 @@
+import re
 import time
 import logging
 from typing import Any, Dict, List, Optional, Set
@@ -32,11 +33,13 @@ class KnowledgeAcquisitionCoordinator:
         provider: Optional[LLMProvider] = None,
         acquisition_engine: Optional[InformationAcquisitionEngine] = None,
         memory: Optional[ValidatedKnowledgeMemory] = None,
+        corpus_chunks: Optional[List[AcquiredChunk]] = None,
     ):
         self.session = db_session
         self.provider = provider
         self.acquisition_engine = acquisition_engine
         self.memory = memory
+        self.corpus_chunks = corpus_chunks or []
 
     async def acquire_knowledge(
         self,
@@ -44,6 +47,7 @@ class KnowledgeAcquisitionCoordinator:
         top_k: int = 5,
         min_similarity: float = 0.20,
         enable_external: bool = False,
+        corpus_chunks: Optional[List[AcquiredChunk]] = None,
     ) -> AcquisitionPayload:
         """
         Executes Stage 02 knowledge acquisition across local DB, memory, and external sources.
@@ -104,7 +108,35 @@ class KnowledgeAcquisitionCoordinator:
             except Exception as e:
                 logger.warning("Error acquiring attached document chunks: %s", e)
 
-        # 2. Local semantic vector retrieval across general database
+        # 2. In-memory corpus chunks (for evaluation benchmarks and test environments)
+        all_corpus = list(self.corpus_chunks) + list(corpus_chunks or [])
+        if all_corpus and len(retrieved_chunks) < top_k:
+            sources_queried.append("in_memory_corpus")
+            if question_spec.document_id:
+                for c in all_corpus:
+                    if c.document_id == question_spec.document_id:
+                        chunk_key = f"{c.document_id}:{c.chunk_id}"
+                        if chunk_key not in seen_chunk_keys:
+                            seen_chunk_keys.add(chunk_key)
+                            retrieved_chunks.append(c)
+
+            if len(retrieved_chunks) < top_k:
+                q_words = set(re.findall(r"\w+", question_spec.raw_query.lower()))
+                scored = []
+                for c in all_corpus:
+                    chunk_key = f"{c.document_id}:{c.chunk_id}"
+                    if chunk_key in seen_chunk_keys:
+                        continue
+                    c_words = set(re.findall(r"\w+", c.text_content.lower()))
+                    score = len(q_words.intersection(c_words)) / max(len(q_words), 1)
+                    if score >= min_similarity or len(retrieved_chunks) == 0:
+                        scored.append((score, c))
+                scored.sort(key=lambda x: x[0], reverse=True)
+                for score, c in scored[:top_k - len(retrieved_chunks)]:
+                    seen_chunk_keys.add(f"{c.document_id}:{c.chunk_id}")
+                    retrieved_chunks.append(c)
+
+        # 3. Local semantic vector retrieval across general database
         if self.session and len(retrieved_chunks) < top_k:
             sources_queried.append("local_vector_retriever")
             try:

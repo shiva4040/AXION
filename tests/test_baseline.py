@@ -51,3 +51,4 @@ def test_baseline_architectural_isolation_guardrail():
         assert "axion.reasoning" not in source, f"Contamination in {module}: imports reasoning"
         assert "axion.transfer" not in source, f"Contamination in {module}: imports transfer"
         assert "axion.tester_sandbox" not in source, f"Contamination in {module}: imports sandbox"
+        assert "axion.pipeline" not in source, f"Contamination in {module}: imports pipeline"

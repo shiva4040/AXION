@@ -20,11 +20,17 @@ class BaselineController:
     The conventional RAG research assistant baseline.
     Acts as the experimental control group for research benchmark evaluations.
     """
-    def __init__(self, db_session: AsyncSession, provider: Optional[LLMProvider] = None):
+    def __init__(
+        self,
+        db_session: Optional[AsyncSession] = None,
+        provider: Optional[LLMProvider] = None,
+        retriever: Optional[BaselineRetriever] = None,
+        generator: Optional[BaselineGenerator] = None,
+    ):
         self.session = db_session
         self.provider = provider or get_llm_provider()
-        self.retriever = BaselineRetriever(db_session, self.provider)
-        self.generator = BaselineGenerator(self.provider)
+        self.retriever = retriever or BaselineRetriever(db_session, self.provider)
+        self.generator = generator or BaselineGenerator(self.provider)
 
     async def query(
         self,
