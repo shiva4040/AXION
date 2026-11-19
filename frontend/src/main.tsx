@@ -10,12 +10,16 @@ createRoot(document.getElementById('root')!).render(
 )
 
 // Register AXION Progressive Web App Service Worker
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+    const rawBase = import.meta.env.BASE_URL || '/';
+    const baseWithSlash = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
+    const swUrl = `${baseWithSlash}sw.js`;
+
     navigator.serviceWorker
-      .register('/sw.js')
+      .register(swUrl, { scope: baseWithSlash })
       .then((reg) => {
-        console.log('[AXION PWA] Service Worker registered with scope:', reg.scope);
+        console.log('[AXION PWA] Service Worker registered! Scope:', reg.scope);
       })
       .catch((err) => {
         console.warn('[AXION PWA] Service Worker registration failed:', err);
