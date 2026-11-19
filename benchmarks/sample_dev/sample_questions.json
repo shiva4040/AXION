@@ -1,0 +1,105 @@
+[
+  {
+    "problem_id": "CAT1-001",
+    "category": "RETRIEVAL_AND_EVIDENCE_ID",
+    "query": "According to synthetic materials literature, what is the reported lattice thermal conductivity of Cryptonite-7, and which document establishes it?",
+    "required_document_ids": ["doc-syn-mat-002"],
+    "distractor_document_ids": ["doc-syn-phys-001", "doc-syn-dist-005", "doc-syn-adversarial-007"],
+    "ground_truth_answer": "The reported lattice thermal conductivity of Cryptonite-7 is kappa_lat = 1.65 W/(m*K), established in doc-syn-mat-002 (Chen and Morozov).",
+    "expected_verdict": "ANSWERABLE",
+    "expected_claims": [
+      {
+        "claim_text": "Lattice thermal conductivity of Cryptonite-7 is kappa_lat = 1.65 W/(m*K).",
+        "source_doc_id": "doc-syn-mat-002",
+        "verbatim_quote": "For Cryptonite-7, lattice thermal conductivity is kappa_lat = 1.65 W/(m*K)."
+      }
+    ]
+  },
+  {
+    "problem_id": "CAT2-001",
+    "category": "CLAIM_EXTRACTION",
+    "query": "Extract the constitutive relationship for stored electrostatic energy density in Cryptonite-7, including its exact mathematical formula and all declared operational boundary conditions.",
+    "required_document_ids": ["doc-syn-phys-001"],
+    "distractor_document_ids": ["doc-syn-dist-005"],
+    "ground_truth_answer": "Constitutive formula: u_E = 0.5 * epsilon_0 * epsilon_r * E_field^2. Governing conditions: valid strictly in the sub-breakdown regime where E_field < 2.5e6 V/m and temperature T < 340 K.",
+    "expected_verdict": "ANSWERABLE",
+    "expected_claims": [
+      {
+        "claim_text": "Stored electrostatic energy density u_E = 0.5 * epsilon_0 * epsilon_r * E_field^2.",
+        "source_doc_id": "doc-syn-phys-001",
+        "verbatim_quote": "u_E = 0.5 * epsilon_0 * epsilon_r * E_field^2",
+        "governing_conditions": ["E_field < 2.5e6 V/m", "T < 340 K", "sub_breakdown_regime"]
+      }
+    ]
+  },
+  {
+    "problem_id": "CAT3-001",
+    "category": "CROSS_DOCUMENT_COMPOSITION",
+    "query": "Calculate the total thermal conductivity kappa_tot and the resulting dimensionless figure of merit ZT for Cryptonite-7 at T = 300 K, composing findings from Chen & Morozov and Thorne.",
+    "required_document_ids": ["doc-syn-mat-002", "doc-syn-mat-003"],
+    "distractor_document_ids": ["doc-syn-phys-001", "doc-syn-dist-005"],
+    "ground_truth_answer": "Composition steps: 1) From Thorne (doc-syn-mat-003), electronic thermal conductivity is kappa_elec = L_0 * sigma * T = 2.44e-8 * 1.25e4 * 300 = 0.0915 W/(m*K). 2) Total thermal conductivity is kappa_tot = kappa_lat + kappa_elec = 1.65 + 0.0915 = 1.7415 W/(m*K). 3) Power factor is S^2 * sigma * T = (4.2e-4)^2 * 1.25e4 * 300 = 0.6615 W/(m*K). 4) Figure of merit is ZT = 0.6615 / 1.7415 = 0.3798.",
+    "expected_verdict": "ANSWERABLE",
+    "expected_reasoning_steps": [
+      {
+        "step_index": 1,
+        "operation": "Calculate electronic thermal conductivity via Wiedemann-Franz law",
+        "premises": ["doc-syn-mat-003 (L_0 = 2.44e-8)", "doc-syn-mat-002 (sigma = 1.25e4, T = 300)"],
+        "derived_conclusion": "kappa_elec = 0.0915 W/(m*K)"
+      },
+      {
+        "step_index": 2,
+        "operation": "Sum lattice and electronic thermal conductivity",
+        "premises": ["doc-syn-mat-002 (kappa_lat = 1.65)", "Step 1 (kappa_elec = 0.0915)"],
+        "derived_conclusion": "kappa_tot = 1.7415 W/(m*K)"
+      },
+      {
+        "step_index": 3,
+        "operation": "Compute ZT",
+        "premises": ["doc-syn-mat-002 (S = 4.2e-4, sigma = 1.25e4, T = 300)", "Step 2 (kappa_tot = 1.7415)"],
+        "derived_conclusion": "ZT = 0.3798"
+      }
+    ]
+  },
+  {
+    "problem_id": "CAT4-001",
+    "category": "CONFLICTING_SOURCES",
+    "query": "What is the static relative permittivity epsilon_r of Cryptonite-7 at room temperature T = 293.15 K based on the available research literature?",
+    "required_document_ids": ["doc-syn-phys-001", "doc-syn-conf-004"],
+    "distractor_document_ids": ["doc-syn-dist-005"],
+    "ground_truth_answer": "There is a direct unresolved conflict between published sources: doc-syn-phys-001 (Vance & Sterling) reports epsilon_r = 8.45 +/- 0.05, while doc-syn-conf-004 (Dubois & Richter) disputes this and reports epsilon_r = 5.20 +/- 0.03, attributing the discrepancy to gold electrode contact capacitance. The system cannot state a single true value without noting the empirical dispute.",
+    "expected_verdict": "CONFLICT_DETECTED",
+    "expected_abstention_reason": "Direct unresolved empirical conflict on parameter epsilon_r between doc-syn-phys-001 and doc-syn-conf-004."
+  },
+  {
+    "problem_id": "CAT5-001",
+    "category": "UNANSWERABLE_INSUFFICIENT",
+    "query": "What is the exact numerical hydrodynamic drag force F_drag on a Cryptonite nanocylinder moving at velocity v = 12.0 m/s in compressed nitrogen?",
+    "required_document_ids": ["doc-syn-incomp-006"],
+    "distractor_document_ids": ["doc-syn-phys-001", "doc-syn-mat-002", "doc-syn-adversarial-007"],
+    "ground_truth_answer": "AXION must abstain. While doc-syn-incomp-006 provides beta_drag = 0.045, it explicitly states that the scaling exponent alpha is unmeasured and unresolved. The drag force cannot be computed without alpha.",
+    "expected_verdict": "ABSTAIN_INSUFFICIENT_EVIDENCE",
+    "expected_abstention_reason": "Essential scaling exponent alpha is missing from the literature."
+  },
+  {
+    "problem_id": "CAT6-001",
+    "category": "CROSS_DOMAIN_TRANSFER",
+    "query": "A microfluidic bio-sensor channel has length L = 0.05 m, circular radius r = 50e-6 m, and carries water of dynamic viscosity mu = 1.002e-3 Pa*s at volumetric flow rate Q = 2.0e-9 m^3/s. Using verified physical principles, compute the required pressure drop Delta_P. (Reynolds number Re = 51.0).",
+    "required_document_ids": [],
+    "memory_seed_id": "FIND-SEED-001",
+    "distractor_document_ids": ["doc-syn-dist-005"],
+    "ground_truth_answer": "Applicability check: The channel flow has Re = 51.0 < 2100, which satisfies the laminar flow boundary condition of verified finding FIND-SEED-001 (Hagen-Poiseuille). 1) Hydraulic resistance R_hyd = (8 * mu * L) / (pi * r^4) = (8 * 1.002e-3 * 0.05) / (pi * (50e-6)^4) = 4.008e-4 / (pi * 6.25e-18) = 2.0413e13 Pa*s/m^3. 2) Pressure drop Delta_P = Q * R_hyd = 2.0e-9 * 2.0413e13 = 40,826.0 Pa (40.83 kPa).",
+    "expected_verdict": "TRANSFER_ACCEPTED"
+  },
+  {
+    "problem_id": "CAT6-002",
+    "category": "CROSS_DOMAIN_TRANSFER",
+    "query": "A high-speed gas duct of radius r = 0.1 m carries air at velocity v = 85 m/s resulting in Reynolds number Re = 5.8e5. Can we apply the Hagen-Poiseuille resistance formula (FIND-SEED-001) to compute pressure drop?",
+    "required_document_ids": [],
+    "memory_seed_id": "FIND-SEED-001",
+    "distractor_document_ids": ["doc-syn-phys-001"],
+    "ground_truth_answer": "Transfer REJECTED. The Hagen-Poiseuille formula (FIND-SEED-001) has an explicit boundary condition requiring laminar flow (Re < 2100). The operating Reynolds number is Re = 5.8e5 (turbulent flow), violating the fundamental applicability envelope. The formula cannot be applied.",
+    "expected_verdict": "TRANSFER_REJECTED",
+    "expected_abstention_reason": "Applicability boundary violation: Re = 5.8e5 exceeds laminar limit Re < 2100."
+  }
+]
