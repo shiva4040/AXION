@@ -12,6 +12,9 @@ from axion.acquisition.engine import InformationAcquisitionEngine
 from axion.knowledge_memory.memory import ValidatedKnowledgeMemory
 from axion.pipeline.stage01_question import MinimalQuestionProcessor
 from axion.pipeline.stage02_acquisition import KnowledgeAcquisitionCoordinator
+from axion.pipeline.stage03_extraction import MinimalEvidenceExtractor
+from axion.pipeline.stage04_composition import MinimalKnowledgeComposer
+from axion.pipeline.stage05_reasoning import MinimalReasoner
 from axion.pipeline.types import (
     AcquiredChunk,
     AcquisitionPayload,
@@ -57,6 +60,9 @@ class PipelineCoordinator:
             acquisition_engine=self.acquisition_engine,
             memory=self.memory,
         )
+        self.stage03 = MinimalEvidenceExtractor(provider=self.provider)
+        self.stage04 = MinimalKnowledgeComposer()
+        self.stage05 = MinimalReasoner()
 
     # -------------------------------------------------------------------------
     # Explicit Stage Execution Methods
@@ -98,42 +104,7 @@ class PipelineCoordinator:
         Stage 03: Evidence Extraction.
         Extracts claims with strict provenance anchoring from acquired chunks.
         """
-        claims: List[ExtractedClaim] = []
-        for i, chunk in enumerate(payload.retrieved_chunks):
-            # Form atomic claim with exact provenance pointer
-            claim = ExtractedClaim(
-                claim_id=f"clm-{chunk.chunk_id}-{i}",
-                statement=chunk.text_content[:200].strip(),
-                epistemic_tier=EpistemicTier.FACT_DOCUMENTED,
-                conditions=[],
-                equations=[],
-                variables=[],
-                provenance=chunk.provenance,
-                confidence=1.0,
-            )
-            claims.append(claim)
-
-        # Include claims from candidate memory findings
-        for m in payload.candidate_memory_items:
-            fid = m.get("finding_id", "mem")
-            # Build memory provenance pointer
-            prov = ProvenancePointer(
-                document_id=f"memory:{fid}",
-                chunk_id=f"mem-chunk-{fid}",
-                page_number=1,
-                extracted_snippet=m.get("statement", "")[:200],
-            )
-            claim = ExtractedClaim(
-                claim_id=f"clm-mem-{fid}",
-                statement=m.get("statement", ""),
-                epistemic_tier=EpistemicTier.FINDING_VALIDATED,
-                conditions=m.get("applicable_conditions", []),
-                provenance=prov,
-                confidence=1.0,
-            )
-            claims.append(claim)
-
-        return claims
+        return await self.stage03.extract_evidence(payload)
 
     async def run_stage_04(
         self,
@@ -144,21 +115,7 @@ class PipelineCoordinator:
         Stage 04: Knowledge Composition.
         Harmonizes variables, coupled premises, and active constraints into a composed system.
         """
-        assumptions: List[str] = []
-        for c in claims:
-            assumptions.extend(c.conditions)
-        if question_spec.identified_constraints:
-            for k, v in question_spec.identified_constraints.items():
-                assumptions.append(f"{k}: {v}")
-
-        return ComposedSystem(
-            unified_variables={v: v for v in question_spec.target_variables},
-            active_assumptions=list(dict.fromkeys(assumptions)),
-            coupled_equations=[],
-            claims=claims,
-            boundary_limits=question_spec.declared_parameters,
-            participating_domains=question_spec.domain_tags,
-        )
+        return self.stage04.compose_system(claims, question_spec)
 
     async def run_stage_05(
         self,
@@ -166,21 +123,9 @@ class PipelineCoordinator:
     ) -> ReasoningTrace:
         """
         Stage 05: Minimal Reasoning and Calculations.
-        Evaluates step-by-step substitution and calculations.
+        Evaluates step-by-step substitution, dimensional validation, and causal DAG.
         """
-        steps: List[str] = []
-        calculated: Dict[str, Any] = {}
-
-        for var, val in composed_system.boundary_limits.items():
-            steps.append(f"Loaded boundary parameter: {var} = {val}")
-            calculated[var] = val
-
-        return ReasoningTrace(
-            steps=steps,
-            calculated_values=calculated,
-            inferred_premises=[c.statement for c in composed_system.claims[:3]],
-            dependency_dag=None,
-        )
+        return self.stage05.execute_reasoning(composed_system)
 
     async def run_stage_06(
         self,

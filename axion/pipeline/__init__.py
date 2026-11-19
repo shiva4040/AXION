@@ -19,6 +19,9 @@ from axion.pipeline.types import (
 )
 from axion.pipeline.stage01_question import MinimalQuestionProcessor
 from axion.pipeline.stage02_acquisition import KnowledgeAcquisitionCoordinator
+from axion.pipeline.stage03_extraction import MinimalEvidenceExtractor
+from axion.pipeline.stage04_composition import MinimalKnowledgeComposer
+from axion.pipeline.stage05_reasoning import MinimalReasoner
 from axion.pipeline.coordinator import PipelineCoordinator
 
 __all__ = [
@@ -35,5 +38,8 @@ __all__ = [
     "VerificationAuditReport",
     "MinimalQuestionProcessor",
     "KnowledgeAcquisitionCoordinator",
+    "MinimalEvidenceExtractor",
+    "MinimalKnowledgeComposer",
+    "MinimalReasoner",
     "PipelineCoordinator",
 ]
