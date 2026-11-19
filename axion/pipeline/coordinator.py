@@ -15,6 +15,9 @@ from axion.pipeline.stage02_acquisition import KnowledgeAcquisitionCoordinator
 from axion.pipeline.stage03_extraction import MinimalEvidenceExtractor
 from axion.pipeline.stage04_composition import MinimalKnowledgeComposer
 from axion.pipeline.stage05_reasoning import MinimalReasoner
+from axion.pipeline.stage06_verification import IndependentVerificationGuard
+from axion.pipeline.stage07_memory import VerifiedMemoryManager
+from axion.pipeline.stage08_answer import MinimalAnswerGenerator
 from axion.pipeline.types import (
     AcquiredChunk,
     AcquisitionPayload,
@@ -63,6 +66,9 @@ class PipelineCoordinator:
         self.stage03 = MinimalEvidenceExtractor(provider=self.provider)
         self.stage04 = MinimalKnowledgeComposer()
         self.stage05 = MinimalReasoner()
+        self.stage06 = IndependentVerificationGuard()
+        self.stage07 = VerifiedMemoryManager(memory=self.memory)
+        self.stage08 = MinimalAnswerGenerator(provider=self.provider)
 
     # -------------------------------------------------------------------------
     # Explicit Stage Execution Methods
@@ -132,59 +138,41 @@ class PipelineCoordinator:
         reasoning_trace: ReasoningTrace,
         composed_system: ComposedSystem,
         payload: AcquisitionPayload,
+        question_spec: Optional[QuestionSpec] = None,
     ) -> VerificationAuditReport:
         """
         Stage 06: Independent Verification Guard.
         Asserts verbatim quotation accuracy, checks for contradictions, and emits abstention if needed.
         """
-        # If no chunks or memory items retrieved, emit ABSTAIN_INSUFFICIENT_EVIDENCE
-        if not payload.retrieved_chunks and not payload.candidate_memory_items:
-            return VerificationAuditReport(
-                verdict="ABSTAIN",
-                abstention_reason="ABSTAIN_INSUFFICIENT_EVIDENCE",
-                quotation_checks_passed=False,
-                contradiction_detected=False,
-                applicability_checks_passed=False,
-                audit_details={"reason": "No evidence retrieved from local documents or external sources"},
-            )
-
-        # Verbatim quotation check: verify that extracted claim snippets exist in chunk content
-        all_text = " ".join(chk.text_content for chk in payload.retrieved_chunks)
-        for claim in composed_system.claims:
-            snippet = claim.provenance.extracted_snippet
-            if snippet and not (claim.provenance.document_id.startswith("memory:") or snippet in all_text or all_text in snippet):
-                pass  # Snippet check completed
-
-        return VerificationAuditReport(
-            verdict="VERIFIED",
-            abstention_reason=None,
-            quotation_checks_passed=True,
-            contradiction_detected=False,
-            applicability_checks_passed=True,
-            audit_details={"claims_audited": len(composed_system.claims)},
+        spec = question_spec or QuestionSpec(raw_query="")
+        return await self.stage06.verify(
+            reasoning_trace=reasoning_trace,
+            composed_system=composed_system,
+            payload=payload,
+            question_spec=spec,
         )
 
     async def run_stage_07_read(
         self,
         question_spec: QuestionSpec,
     ) -> List[Dict[str, Any]]:
-        """Stage 07: Memory Reading Stub."""
-        if not self.memory:
-            return []
-        try:
-            from axion.knowledge_memory.types import KnowledgeStatus
-            active = self.memory.list_findings(status_filter=KnowledgeStatus.VALID)
-            return [
-                {
-                    "finding_id": f.finding_id,
-                    "title": f.title,
-                    "statement": f.statement,
-                }
-                for f in active
-            ]
-        except Exception as e:
-            logger.warning("Stage 07 memory reading error: %s", e)
-            return []
+        """Stage 07: Memory Reading."""
+        return self.stage07.read_candidate_findings(question_spec)
+
+    def run_stage_07_store(
+        self,
+        audit_report: VerificationAuditReport,
+        reasoning_trace: ReasoningTrace,
+        composed_system: ComposedSystem,
+        question_spec: QuestionSpec,
+    ) -> Optional[Any]:
+        """Stage 07: Verified Findings Memory Storage (Gatekeeper)."""
+        return self.stage07.store_verified_finding(
+            audit_report=audit_report,
+            reasoning_trace=reasoning_trace,
+            composed_system=composed_system,
+            question_spec=question_spec,
+        )
 
     async def run_stage_08(
         self,
@@ -196,49 +184,11 @@ class PipelineCoordinator:
         total_latency_ms: float,
     ) -> PipelineAnswerResponse:
         """Stage 08: Minimal Answer Generation."""
-        # Check for abstention
-        if audit_report.verdict == "ABSTAIN":
-            return PipelineAnswerResponse(
-                query_id=question_spec.query_id,
-                query=question_spec.raw_query,
-                verdict=audit_report.abstention_reason or "ABSTAIN_INSUFFICIENT_EVIDENCE",
-                direct_answer=f"AXION cannot answer this question because essential evidence is absent from the provided documents.",
-                supporting_evidence=[],
-                active_assumptions=composed_system.active_assumptions,
-                calculation_steps=[],
-                is_abstained=True,
-                abstention_reason=audit_report.abstention_reason,
-                execution_logs=execution_logs,
-                total_latency_ms=total_latency_ms,
-            )
-
-        # Answerable: format supporting evidence
-        evidence_items: List[SupportingEvidenceItem] = []
-        for claim in composed_system.claims[:3]:
-            evidence_items.append(
-                SupportingEvidenceItem(
-                    claim=claim.statement[:120],
-                    citation=f"Doc {claim.provenance.document_id}, Page {claim.provenance.page_number}",
-                    verbatim_quote=claim.provenance.extracted_snippet,
-                    provenance=claim.provenance,
-                )
-            )
-
-        direct_ans = (
-            f"Based on verified primary evidence in {question_spec.domain_tags or ['general science']}, "
-            f"the investigation resolved {len(composed_system.claims)} grounded claims."
-        )
-
-        return PipelineAnswerResponse(
-            query_id=question_spec.query_id,
-            query=question_spec.raw_query,
-            verdict="ANSWERABLE",
-            direct_answer=direct_ans,
-            supporting_evidence=evidence_items,
-            active_assumptions=composed_system.active_assumptions,
-            calculation_steps=reasoning_trace.steps,
-            is_abstained=False,
-            abstention_reason=None,
+        return self.stage08.generate_answer(
+            audit_report=audit_report,
+            reasoning_trace=reasoning_trace,
+            composed_system=composed_system,
+            question_spec=question_spec,
             execution_logs=execution_logs,
             total_latency_ms=total_latency_ms,
         )
@@ -338,7 +288,7 @@ class PipelineCoordinator:
 
             # Stage 06
             s6_t0 = time.time()
-            audit = await self.run_stage_06(trace, composed, payload)
+            audit = await self.run_stage_06(trace, composed, payload, spec)
             s6_dur = (time.time() - s6_t0) * 1000.0
             logs.append(StageExecutionLog(
                 stage_number=6,
@@ -349,17 +299,17 @@ class PipelineCoordinator:
                 summary=f"Audit verdict: {audit.verdict}, quote_passed: {audit.quotation_checks_passed}",
             ))
 
-            # Stage 07 (Read stub verification)
+            # Stage 07 (Verified Findings Memory - Read candidate in S2, store here if verified)
             s7_t0 = time.time()
-            _ = await self.run_stage_07_read(spec)
+            stored_finding = self.run_stage_07_store(audit, trace, composed, spec)
             s7_dur = (time.time() - s7_t0) * 1000.0
             logs.append(StageExecutionLog(
                 stage_number=7,
-                stage_name="Verified Findings Memory (Read Stub)",
+                stage_name="Verified Findings Memory",
                 status="SUCCESS",
                 started_at=datetime.now(timezone.utc).isoformat(),
                 duration_ms=s7_dur,
-                summary="Memory read stub executed",
+                summary=f"Stored finding: {stored_finding.finding_id if stored_finding else 'None (unverified or duplicate)'}",
             ))
 
             # Stage 08
