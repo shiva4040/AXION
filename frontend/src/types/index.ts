@@ -17,7 +17,8 @@ export type WorkspaceId =
   | 'hypothesis'
   | 'validation'
   | 'memory'
-  | 'history';
+  | 'history'
+  | 'showcase';
 
 export interface EvidenceSnippet {
   snippet: string;

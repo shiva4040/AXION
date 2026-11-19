@@ -1,0 +1,79 @@
+/* AXION Query Desk — Design Tokens */
+
+:root {
+  /* Exact Color System from Visual Specification */
+  --axion-bg: #EFE6D2;
+  /* Main desk background */
+  --axion-parchment: #F3EAD3;
+  /* Secondary parchment (desk trim & buttons) */
+  --axion-header-bg: #E6DBC0;
+  /* Header and status bar surface */
+  --axion-input-surface: #FBF5E6;
+  /* Window / editor writing surface */
+  --axion-text: #211E19;
+  /* Primary dark charcoal text */
+  --axion-text-muted: #70695D;
+  /* Secondary text & metadata */
+  --axion-border: #211E19;
+  /* Thin dark ink border */
+  --axion-red: #B83A22;
+  /* Accent red-orange (SEND & stamp) */
+  --axion-red-hover: #9F301B;
+  --axion-green: #2F6F6B;
+  /* Status green (READY indicator) */
+  --axion-dot: #C8BEA3;
+  /* Subtle dot grid pattern */
+
+  /* Hard Offset Shadows (Retro Terminal Standard) */
+  --axion-shadow-sm: 2px 2px 0px var(--axion-border);
+  --axion-shadow-md: 4px 4px 0px var(--axion-border);
+  --axion-shadow-lg: 6px 6px 0px var(--axion-border);
+
+  /* Typography */
+  --font-slab: "Alfa Slab One", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Authentic Paper Dotted Grid matching the screenshot */
+.axion-desk-grid {
+  background-color: var(--axion-bg);
+  background-image: radial-gradient(var(--axion-dot) 1.25px, transparent 1.25px);
+  background-size: 20px 20px;
+  background-position: 0 0;
+}
+
+/* Vintage Terminal Window Horizontal Pinstripes */
+.axion-pinstripes {
+  background: repeating-linear-gradient(to bottom,
+      transparent 0px,
+      transparent 2px,
+      var(--axion-border) 2px,
+      var(--axion-border) 3px);
+}
+
+/* Selection aesthetics */
+::selection {
+  background-color: var(--axion-border);
+  color: var(--axion-input-surface);
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--axion-parchment);
+  border-left: 1.5px solid var(--axion-border);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--axion-header-bg);
+  border: 1.5px solid var(--axion-border);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--axion-border);
+}

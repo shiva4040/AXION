@@ -55,13 +55,45 @@ def create_app() -> FastAPI:
     app.include_router(investigation.router, prefix="/api/v1")
     app.include_router(acquisition.router, prefix="/api/v1")
 
-    # Static assets mounting & Minimal Homepage
+    # Static assets mounting & PWA Serving
     static_dir = Path(__file__).resolve().parent.parent / "static"
     if static_dir.exists():
         assets_dir = static_dir / "assets"
         if assets_dir.exists():
             app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
         app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+        icons_dir = static_dir / "icons"
+        if icons_dir.exists():
+            app.mount("/icons", StaticFiles(directory=str(icons_dir)), name="icons")
+
+        @app.get("/sw.js", include_in_schema=False)
+        async def serve_sw():
+            sw_file = static_dir / "sw.js"
+            if sw_file.exists():
+                return FileResponse(
+                    str(sw_file),
+                    media_type="application/javascript",
+                    headers={"Service-Worker-Allowed": "/"}
+                )
+            return Response(status_code=404)
+
+        @app.get("/manifest.webmanifest", include_in_schema=False)
+        @app.get("/manifest.json", include_in_schema=False)
+        async def serve_manifest():
+            m_file = static_dir / "manifest.webmanifest"
+            if not m_file.exists():
+                m_file = static_dir / "manifest.json"
+            if m_file.exists():
+                return FileResponse(str(m_file), media_type="application/manifest+json")
+            return Response(status_code=404)
+
+        @app.get("/favicon.svg", include_in_schema=False)
+        async def serve_favicon():
+            fav = static_dir / "favicon.svg"
+            if fav.exists():
+                return FileResponse(str(fav), media_type="image/svg+xml")
+            return Response(status_code=404)
 
         @app.get("/", include_in_schema=False)
         async def serve_homepage():
