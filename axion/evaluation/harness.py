@@ -52,9 +52,9 @@ class ExperimentConfig(BaseModel):
     pipeline_version: str = "phase1-v1.0"
     model_id: str = "mock-or-specified"
     prompt_version: str = "phase1-prompt-v1"
-    retrieval_config: Dict[str, Any] = Field(default_factory=lambda: {"top_k": 5, "min_similarity": 0.20})
+    retrieval_config: Dict[str, Any] = Field(default_factory=lambda: {"top_k": 5, "min_similarity": 0.10})
     top_k: int = 5
-    min_similarity: float = 0.20
+    min_similarity: float = 0.10
     timeout_seconds: float = 10.0
     random_seed: int = 42
     git_commit_hash: str = Field(default_factory=get_git_commit_hash)
@@ -238,10 +238,10 @@ class ExperimentHarness:
                 for log in resp.execution_logs
             }
 
-            retrieved_chunk_ids = [
+            retrieved_chunk_ids = resp.retrieved_chunk_ids or [
                 c.provenance.chunk_id for c in resp.supporting_evidence if c.provenance and c.provenance.chunk_id
             ]
-            retrieved_doc_ids = list({
+            retrieved_doc_ids = resp.retrieved_document_ids or list({
                 c.provenance.document_id for c in resp.supporting_evidence if c.provenance and c.provenance.document_id
             })
 

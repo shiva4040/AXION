@@ -65,7 +65,7 @@ class BaselineRetriever:
         self,
         query: str,
         top_k: int = 5,
-        min_similarity: float = 0.20
+        min_similarity: float = 0.10
     ) -> List[RetrievedChunk]:
         """
         Generates query embedding and returns top-k nearest document chunks.
@@ -133,6 +133,23 @@ class BaselineRetriever:
                         )
                     )
 
-        # Sort descending by similarity score
+        # Sort descending by similarity score and diversify across documents
         scored_chunks.sort(key=lambda x: x.similarity_score, reverse=True)
-        return scored_chunks[:top_k]
+        diversified: List[RetrievedChunk] = []
+        doc_counts: Dict[str, int] = {}
+        for sc in scored_chunks:
+            cnt = doc_counts.get(sc.document_id, 0)
+            if cnt < 2:
+                diversified.append(sc)
+                doc_counts[sc.document_id] = cnt + 1
+            if len(diversified) >= top_k:
+                break
+
+        if len(diversified) < top_k:
+            for sc in scored_chunks:
+                if sc not in diversified:
+                    diversified.append(sc)
+                if len(diversified) >= top_k:
+                    break
+
+        return diversified

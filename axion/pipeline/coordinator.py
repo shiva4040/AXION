@@ -94,7 +94,7 @@ class PipelineCoordinator:
         self,
         question_spec: QuestionSpec,
         top_k: int = 5,
-        min_similarity: float = 0.20,
+        min_similarity: float = 0.10,
         enable_external: bool = False,
         corpus_chunks: Optional[List[AcquiredChunk]] = None,
     ) -> AcquisitionPayload:
@@ -207,7 +207,7 @@ class PipelineCoordinator:
         raw_query: str,
         document_id: Optional[str] = None,
         top_k: int = 5,
-        min_similarity: float = 0.20,
+        min_similarity: float = 0.10,
         enable_external: bool = False,
         timeout_seconds: Optional[float] = None,
         corpus_chunks: Optional[List[AcquiredChunk]] = None,
@@ -339,6 +339,8 @@ class PipelineCoordinator:
                 duration_ms=s8_dur,
                 summary=f"Emitted verdict: {response.verdict}, abstained: {response.is_abstained}",
             ))
+            response.retrieved_chunk_ids = [c.chunk_id for c in payload.retrieved_chunks]
+            response.retrieved_document_ids = list({c.document_id for c in payload.retrieved_chunks})
             response.execution_logs = logs
             response.total_latency_ms = (time.time() - t_start) * 1000.0
             return response

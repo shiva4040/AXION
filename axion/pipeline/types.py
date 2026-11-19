@@ -173,4 +173,6 @@ class PipelineAnswerResponse(BaseModel):
     is_abstained: bool = False
     abstention_reason: Optional[str] = None
     execution_logs: List[StageExecutionLog] = Field(default_factory=list)
+    retrieved_chunk_ids: List[str] = Field(default_factory=list)
+    retrieved_document_ids: List[str] = Field(default_factory=list)
     total_latency_ms: float = 0.0

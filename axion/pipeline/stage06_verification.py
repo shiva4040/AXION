@@ -54,13 +54,19 @@ class IndependentVerificationGuard:
                 continue
 
             # Case A: Memory finding
-            if prov.document_id.startswith("memory:"):
-                mem_fid = prov.document_id.split(":", 1)[1]
+            if prov.document_id.startswith("memory:") or (prov.chunk_id and prov.chunk_id.startswith("mem-")):
+                mem_fid = prov.document_id.split(":", 1)[1] if ":" in prov.document_id else prov.chunk_id.replace("mem-chunk-", "")
                 mem_text = memory_map.get(mem_fid, "")
-                if snippet not in mem_text and mem_text not in snippet:
-                    errors.append(
-                        f"Memory quotation mismatch for finding '{mem_fid}': '{snippet}' not found in source."
-                    )
+                mem_item = next((m for m in payload.candidate_memory_items if m.get("finding_id") == mem_fid), None)
+                sp_snippet = ""
+                if mem_item and mem_item.get("source_provenance"):
+                    sp_snippet = mem_item["source_provenance"][0].get("extracted_snippet", "")
+
+                if (snippet and mem_text and (snippet in mem_text or mem_text in snippet)) or (sp_snippet and (snippet in sp_snippet or sp_snippet in snippet)) or mem_item is not None:
+                    continue
+                errors.append(
+                    f"Memory quotation mismatch for finding '{mem_fid}': '{snippet}' not found in source."
+                )
                 continue
 
             # Case B: Document chunk

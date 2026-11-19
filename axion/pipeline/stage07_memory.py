@@ -95,11 +95,17 @@ class VerifiedMemoryManager:
         
         # Build finding statement from reasoning conclusions
         statement_parts = []
-        for k, v in reasoning_trace.calculated_values.items():
-            statement_parts.append(f"{k} = {v}")
-        for p in reasoning_trace.inferred_premises[:2]:
+        target_vars = set(question_spec.target_variables)
+        if target_vars:
+            for k, v in reasoning_trace.calculated_values.items():
+                if k in target_vars:
+                    statement_parts.append(f"{k} = {v}")
+        if not statement_parts:
+            for k, v in list(reasoning_trace.calculated_values.items())[:2]:
+                statement_parts.append(f"{k} = {v}")
+        for p in reasoning_trace.inferred_premises[:1]:
             statement_parts.append(p)
-        
+
         finding_statement = "; ".join(statement_parts)
         if not finding_statement:
             finding_statement = f"Verified finding for query: {question_spec.raw_query}"

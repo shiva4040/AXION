@@ -1,0 +1,258 @@
+{
+  "axion_metrics": {
+    "recall_at_5": {
+      "metric": "Recall@5",
+      "score": 1.0,
+      "total_required": 30,
+      "retrieved_required": 30,
+      "ci_95": [
+        0.8865,
+        1.0
+      ],
+      "threshold": 0.85,
+      "passed": true
+    },
+    "evidence_coverage": {
+      "metric": "Evidence Coverage",
+      "score": 0.9833,
+      "covered_queries": 59,
+      "total_queries": 60,
+      "ci_95": [
+        0.9114,
+        0.9971
+      ],
+      "threshold": 0.8,
+      "passed": true
+    },
+    "attribution_accuracy": {
+      "metric": "Attribution Accuracy",
+      "score": 0.9994,
+      "valid_attributions": 1729,
+      "total_evaluated": 1730,
+      "ci_95": [
+        0.9967,
+        0.9999
+      ],
+      "threshold": 0.9,
+      "passed": true
+    },
+    "exact_quotation_accuracy": {
+      "metric": "Exact Quotation Accuracy",
+      "score": 1.0,
+      "exact_matches": 1434,
+      "total_quotes": 1434,
+      "hallucinated_sample": [],
+      "threshold": 1.0,
+      "passed": true
+    },
+    "correct_abstention_rate": {
+      "metric": "Correct Abstention Rate",
+      "score": 0.9667,
+      "correct_abstentions": 29,
+      "total_cat5_queries": 30,
+      "ci_95": [
+        0.8333,
+        0.9941
+      ],
+      "threshold": 0.9,
+      "passed": true
+    },
+    "failure_and_timeout_rate": {
+      "metric": "Failure and Timeout Rate",
+      "score": 0.0,
+      "total_failures": 0,
+      "crashes": 0,
+      "timeouts": 0,
+      "total_queries": 180,
+      "threshold": 0.05,
+      "passed": true
+    },
+    "reproducibility_compliance": {
+      "metric": "Reproducibility Compliance",
+      "score": 1.0,
+      "compliant_records": 180,
+      "total_records": 180,
+      "threshold": 1.0,
+      "passed": true
+    },
+    "average_latency_ms": 22.23,
+    "all_gates_passed": true
+  },
+  "baseline_metrics": {
+    "recall_at_5": {
+      "metric": "Recall@5",
+      "score": 1.0,
+      "total_required": 30,
+      "retrieved_required": 30,
+      "ci_95": [
+        0.8865,
+        1.0
+      ],
+      "threshold": 0.85,
+      "passed": true
+    },
+    "evidence_coverage": {
+      "metric": "Evidence Coverage",
+      "score": 0.9833,
+      "covered_queries": 59,
+      "total_queries": 60,
+      "ci_95": [
+        0.9114,
+        0.9971
+      ],
+      "threshold": 0.8,
+      "passed": true
+    },
+    "attribution_accuracy": {
+      "metric": "Attribution Accuracy",
+      "score": 1.0,
+      "valid_attributions": 806,
+      "total_evaluated": 806,
+      "ci_95": [
+        0.9953,
+        1.0
+      ],
+      "threshold": 0.9,
+      "passed": true
+    },
+    "exact_quotation_accuracy": {
+      "metric": "Exact Quotation Accuracy",
+      "score": 1.0,
+      "exact_matches": 0,
+      "total_quotes": 0,
+      "hallucinated_sample": [],
+      "threshold": 1.0,
+      "passed": true
+    },
+    "correct_abstention_rate": {
+      "metric": "Correct Abstention Rate",
+      "score": 0.0,
+      "correct_abstentions": 0,
+      "total_cat5_queries": 30,
+      "ci_95": [
+        0.0,
+        0.1135
+      ],
+      "threshold": 0.9,
+      "passed": false
+    },
+    "failure_and_timeout_rate": {
+      "metric": "Failure and Timeout Rate",
+      "score": 0.0,
+      "total_failures": 0,
+      "crashes": 0,
+      "timeouts": 0,
+      "total_queries": 180,
+      "threshold": 0.05,
+      "passed": true
+    },
+    "reproducibility_compliance": {
+      "metric": "Reproducibility Compliance",
+      "score": 1.0,
+      "compliant_records": 180,
+      "total_records": 180,
+      "threshold": 1.0,
+      "passed": true
+    },
+    "average_latency_ms": 8.97,
+    "all_gates_passed": false
+  },
+  "deltas": {
+    "recall_at_5_delta": 0.0,
+    "evidence_coverage_delta": 0.0,
+    "attribution_accuracy_delta": -0.0006,
+    "exact_quotation_accuracy_delta": 0.0,
+    "correct_abstention_rate_delta": 0.9667,
+    "latency_difference_ms": 13.26
+  },
+  "category_breakdown": {
+    "axion": {
+      "RETRIEVAL_AND_EVIDENCE_ID": {
+        "count": 30,
+        "attribution_accuracy": 0.9977,
+        "quotation_accuracy": 1.0,
+        "failure_rate": 0.0,
+        "average_latency_ms": 20.28
+      },
+      "CLAIM_EXTRACTION": {
+        "count": 30,
+        "attribution_accuracy": 1.0,
+        "quotation_accuracy": 1.0,
+        "failure_rate": 0.0,
+        "average_latency_ms": 16.6
+      },
+      "CROSS_DOCUMENT_COMPOSITION": {
+        "count": 30,
+        "attribution_accuracy": 1.0,
+        "quotation_accuracy": 1.0,
+        "failure_rate": 0.0,
+        "average_latency_ms": 18.11
+      },
+      "CONFLICTING_SOURCES": {
+        "count": 30,
+        "attribution_accuracy": 1.0,
+        "quotation_accuracy": 1.0,
+        "failure_rate": 0.0,
+        "average_latency_ms": 19.07
+      },
+      "UNANSWERABLE_INSUFFICIENT": {
+        "count": 30,
+        "attribution_accuracy": 1.0,
+        "quotation_accuracy": 1.0,
+        "failure_rate": 0.0,
+        "average_latency_ms": 25.07
+      },
+      "CROSS_DOMAIN_TRANSFER": {
+        "count": 30,
+        "attribution_accuracy": 1.0,
+        "quotation_accuracy": 1.0,
+        "failure_rate": 0.0,
+        "average_latency_ms": 34.25
+      }
+    },
+    "baseline": {
+      "RETRIEVAL_AND_EVIDENCE_ID": {
+        "count": 30,
+        "attribution_accuracy": 1.0,
+        "quotation_accuracy": 1.0,
+        "failure_rate": 0.0,
+        "average_latency_ms": 9.12
+      },
+      "CLAIM_EXTRACTION": {
+        "count": 30,
+        "attribution_accuracy": 1.0,
+        "quotation_accuracy": 1.0,
+        "failure_rate": 0.0,
+        "average_latency_ms": 8.9
+      },
+      "CROSS_DOCUMENT_COMPOSITION": {
+        "count": 30,
+        "attribution_accuracy": 1.0,
+        "quotation_accuracy": 1.0,
+        "failure_rate": 0.0,
+        "average_latency_ms": 9.17
+      },
+      "CONFLICTING_SOURCES": {
+        "count": 30,
+        "attribution_accuracy": 1.0,
+        "quotation_accuracy": 1.0,
+        "failure_rate": 0.0,
+        "average_latency_ms": 8.75
+      },
+      "UNANSWERABLE_INSUFFICIENT": {
+        "count": 30,
+        "attribution_accuracy": 1.0,
+        "quotation_accuracy": 1.0,
+        "failure_rate": 0.0,
+        "average_latency_ms": 8.86
+      },
+      "CROSS_DOMAIN_TRANSFER": {
+        "count": 30,
+        "attribution_accuracy": 1.0,
+        "quotation_accuracy": 1.0,
+        "failure_rate": 0.0,
+        "average_latency_ms": 9.02
+      }
+    }
+  }
+}

@@ -105,11 +105,16 @@ class MinimalReasoner:
         try:
             lhs_expr = sp.parse_expr(lhs_str, local_dict=local_ns, evaluate=False)
             rhs_expr = sp.parse_expr(rhs_str, local_dict=local_ns, evaluate=False)
+            if isinstance(lhs_expr, type):
+                lhs_expr = sp.Symbol(lhs_str)
+            if isinstance(rhs_expr, type):
+                rhs_expr = sp.Symbol(rhs_str)
         except Exception as e:
             return None, None, None, f"Parse error in '{eq_str}': {e}"
 
         # Case 1: LHS is a single symbol and unknown, while all RHS symbols are known
-        if lhs_expr.is_Symbol and str(lhs_expr) not in known_values:
+        lhs_is_sym = isinstance(lhs_expr, sp.Symbol) or getattr(lhs_expr, "is_Symbol", False)
+        if lhs_is_sym and str(lhs_expr) not in known_values:
             rhs_symbols = [str(s) for s in rhs_expr.free_symbols]
             # Check case-insensitive match for symbols in known_values
             resolved_sub = {}
@@ -140,7 +145,8 @@ class MinimalReasoner:
                     return None, None, None, f"Evaluation error in {eq_str}: {e}"
 
         # Case 2: RHS is single symbol, LHS is known
-        if rhs_expr.is_Symbol and str(rhs_expr) not in known_values:
+        rhs_is_sym = isinstance(rhs_expr, sp.Symbol) or getattr(rhs_expr, "is_Symbol", False)
+        if rhs_is_sym and str(rhs_expr) not in known_values:
             lhs_symbols = [str(s) for s in lhs_expr.free_symbols]
             resolved_sub = {}
             missing = []

@@ -176,11 +176,24 @@ class MinimalEvidenceExtractor:
         conditions = memory_item.get("applicable_conditions", []) + memory_item.get("active_assumptions", [])
         eqs, vars_ = self.extract_equations_and_variables(statement)
 
+        underlying_snippet = statement
+        doc_id = f"memory:{fid}"
+        page_num = 1
+        source_prov = memory_item.get("source_provenance")
+        if source_prov and len(source_prov) > 0:
+            sp = source_prov[0]
+            if isinstance(sp, dict):
+                underlying_snippet = sp.get("extracted_snippet") or statement
+                page_num = sp.get("page_number", 1)
+            elif hasattr(sp, "extracted_snippet"):
+                underlying_snippet = sp.extracted_snippet or statement
+                page_num = sp.page_number or 1
+
         prov = ProvenancePointer(
-            document_id=f"memory:{fid}",
+            document_id=doc_id,
             chunk_id=f"mem-chunk-{fid}",
-            page_number=1,
-            extracted_snippet=statement[:300],
+            page_number=page_num,
+            extracted_snippet=underlying_snippet[:300],
         )
 
         return [
