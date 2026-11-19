@@ -27,6 +27,7 @@ wheels/
 # Virtual environments
 venv/
 .venv/
+.venv*/
 ENV/
 env/
 
@@ -49,6 +50,8 @@ htmlcov/
 *.sqlite
 *.sqlite3
 axion_validated_memory.json
+axion_continuous_acquisition_state.json
+solar_ev_evaluation_dump.json
 
 # Node & Frontend
 node_modules/
