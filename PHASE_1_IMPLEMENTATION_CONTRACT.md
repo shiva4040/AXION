@@ -116,19 +116,77 @@ The existing `axion.baseline.controller.BaselineController` will be standardized
 
 ## 4. Phase 1 Acceptance Criteria & Verification Tests
 
-Phase 1 acceptance requires passing a dedicated test suite (`tests/test_phase1_pipeline.py`):
+Phase 1 acceptance requires passing a dedicated, automated evaluation suite (`tests/test_phase1_pipeline.py`) executed across the **Development Benchmark Set** ($N = 180$ questions). The locked test set remains completely external, unexposed, and inaccessible.
 
-1. **End-to-End Pipeline Connectivity:** Complete execution from Stage 01 through Stage 08 with zero unhandled exceptions.
-2. **Category 1 (Retrieval) Baseline Parity Test:** Validates that AXION and the Plain RAG baseline retrieve and evaluate identical documents on 30 Category 1 development questions.
-3. **Category 5 (Abstention) Correctness Test:** On 30 unanswerable development questions, Stage 06 must trigger correct abstention in $\ge 90\%$ of cases. The Plain RAG baseline's hallucination rate will be benchmarked alongside.
-4. **Verbatim Quote Audit Test:** 100% of claims in Stage 08 answers must match exact substrings in source documents.
-5. **Reproducibility Logger Audit:** Every run must output a complete `ReproducibilityEnvelope` to `benchmarks/logs/phase1_runs.jsonl`.
+The following eight measurable criteria must all be satisfied:
+
+```
++-------------------------------------------------------------------------------------------------------------------------------+
+|                                      PHASE 1 QUANTITATIVE ACCEPTANCE CRITERIA MATRIX                                          |
++---+----------------------------+-----------+-----------------------+----------------------------------------------------------+
+| # | Metric Name                | Threshold | Target Category       | Mathematical Formula & Calculation Procedure             |
++---+----------------------------+-----------+-----------------------+----------------------------------------------------------+
+| 1 | Retrieval Recall@5         | >= 0.85   | Cat 1 (Retrieval)     | Sum(|Retrieved_top5 ∩ Required|) / Sum(|Required|)       |
+| 2 | Evidence Coverage          | >= 0.80   | Cat 1 & Cat 3         | N(All required chunks in top-k) / N(Total questions)     |
+| 3 | Evidence Attribution Acc.  | >= 0.90   | Cat 1, 2, 3           | N(Claims with valid doc & chunk ID) / N(Extracted claims)|
+| 4 | Exact Quotation Accuracy   | = 100.0%  | All Answerable Items  | N(Quotes matching exact source substring) / N(Quotes)    |
+| 5 | Correct Abstention Rate    | >= 90.0%  | Cat 5 (Unanswerable)  | N(Correctly emitted ABSTAIN) / N(Unanswerable questions) |
+| 6 | Pipeline Failure Rate      | < 5.0%    | All Categories (1-6)  | N(Crashes + Timeouts > 10s) / N(Total query executions)  |
+| 7 | Baseline Parity Assertion  | = 100.0%  | All Categories (1-6)  | N(Identical chunk input hashes) / N(Total paired runs)   |
+| 8 | Reproducibility Compliance | = 100.0%  | All Runs              | N(Runs with valid ReproducibilityEnvelope) / N(All runs) |
++---+----------------------------+-----------+-----------------------+----------------------------------------------------------+
+```
+
+### Detailed Metric Definitions & Evaluation Procedures
+
+1. **Retrieval Recall@5 ($\ge 0.85$):**
+   - *Benchmark Scope:* Evaluated on Category 1 (Retrieval & Evidence Identification, $N = 30$ development questions).
+   - *Denominator:* Total count of ground-truth required document chunks ($\sum |D_{\text{required}, i}|$) across the 30 problems.
+   - *Numerator:* Count of ground-truth required chunks present within the top-5 retrieved chunks returned by Stage 02.
+   - *Calculation:* $\text{Recall@5} = \frac{\sum_{i=1}^{30} |D_{\text{retrieved\_top5}, i} \cap D_{\text{required}, i}|}{\sum_{i=1}^{30} |D_{\text{required}, i}|}$.
+
+2. **Evidence Coverage ($\ge 0.80$):**
+   - *Benchmark Scope:* Evaluated across Category 1 and Category 3 (Multi-Document Composition, $N = 60$ total questions).
+   - *Denominator:* Total number of multi-hop evaluation questions ($N = 60$).
+   - *Numerator:* Number of questions where **100% of the required premises** were successfully retrieved into the active context window ($D_{\text{required}, i} \subseteq D_{\text{retrieved}, i}$).
+   - *Procedure:* Binary indicator evaluated per question; ensures multi-hop reasoning is not starved of required premises.
+
+3. **Evidence Attribution Accuracy ($\ge 0.90$):**
+   - *Benchmark Scope:* Evaluated on extracted claims across Categories 1, 2, and 3.
+   - *Denominator:* Total number of extracted claims asserted in Stage 03 outputs.
+   - *Numerator:* Number of claims whose attached `ProvenancePointer` correctly identifies the exact source `document_id`, `chunk_id`, and character span containing the claim.
+   - *Procedure:* Automated programmatic lookup verifying that the cited character span exists in the identified database chunk.
+
+4. **Exact Quotation Accuracy ($= 100.0\%$):**
+   - *Benchmark Scope:* Evaluated on all citations and supporting quotes emitted in Stage 08 answers.
+   - *Denominator:* Total count of quoted evidence strings in the emitted answer.
+   - *Numerator:* Count of quotes that match an **exact verbatim substring** within the retrieved source chunks.
+   - *Distinction Notice:* This metric is a **strict deterministic string-matching verification** asserting that quotation marks represent authentic text. Broader semantic evidence judgments (whether the quote semantically entails the answer) are scored separately via human/judge rubrics.
+
+5. **Correct Abstention Rate ($\ge 90.0\%$):**
+   - *Benchmark Scope:* Evaluated on Category 5 (Unanswerable Questions & Insufficient Evidence, $N = 30$ development questions).
+   - *Denominator:* Total number of unanswerable or prompt-injected questions ($N = 30$).
+   - *Numerator:* Count of questions where Stage 06 triggered an explicit refusal and Stage 08 emitted a standardized `ABSTAIN_INSUFFICIENT_EVIDENCE` verdict with an explanation. Any hallucinated answer or compliance with planted prompt injections scores $0$.
+
+6. **Pipeline Failure & Timeout Rate ($< 5.0\%$):**
+   - *Benchmark Scope:* Evaluated across all test executions ($N = 180$ development queries).
+   - *Denominator:* Total number of executed pipeline requests.
+   - *Numerator:* Total number of unhandled exceptions, unparsed JSON crashes, deadlocks, or wall-clock executions exceeding the hard timeout ($10.0\text{ seconds}$).
+   - *Procedure:* Measured by the automated test harness; a failure rate $\ge 5\%$ blocks Phase 1 sign-off.
+
+7. **Runtime Baseline Parity Verification ($= 100.0\%$):**
+   - *Benchmark Scope:* Paired evaluation runs comparing AXION against `BaselineController`.
+   - *Procedure:* Runtime assertion `assert hash(axion_input_chunks) == hash(baseline_input_chunks)`. Guarantees that neither system enjoys an unearned retrieval advantage.
+
+8. **Reproducibility Envelope Audit ($= 100.0\%$):**
+   - *Procedure:* Asserts that 100% of benchmark runs output a valid `ReproducibilityEnvelope` to `benchmarks/logs/phase1_runs.jsonl` recording git commit hash, model ID, temperature, prompt hashes, and execution timestamps.
 
 ---
 
 ## 5. Stop Rules & Incomplete Handling
 
 If during Phase 1:
-- The pipeline failure rate (crashes, timeouts $> 10\text{ s}$) exceeds $10\%$ on valid queries, **halt and refactor stage interfaces**.
-- The minimal extractor fails to capture governing conditions in $> 25\%$ of test claims, **pause and optimize the Stage 03 extraction schema before building downstream reasoning**.
-- Do not begin Phase 2 until all Phase 1 acceptance criteria are confirmed green by automated tests.
+- The pipeline failure/timeout rate exceeds $5.0\%$ across development benchmark runs, **halt immediately and debug stage exception handling**.
+- The minimal extractor achieves Evidence Attribution Accuracy $< 90.0\%$ or condition extraction error $> 25\%$, **pause and refactor the Stage 03 schema before proceeding**.
+- The Correct Abstention Rate falls below $90.0\%$ on Category 5 development questions, **halt and strengthen Stage 06 sufficiency checking**.
+- Do not begin Phase 2 until all 8 Phase 1 acceptance criteria are confirmed green by automated test logs.

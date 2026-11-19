@@ -168,6 +168,6 @@ The existing codebase contains ten modular components implemented during initial
 ## 4. Architectural Invariants & Non-Negotiable Contracts
 
 1. **No Unearned Information Advantage:** In all benchmark evaluations, the Plain RAG Baseline and the AXION Pipeline must receive identical document sets, identical query strings, and identical underlying LLM models.
-2. **Untrusted Data Boundary:** All external documents, user uploads, and web search results are treated as untrusted data. They must pass AST/Regex sanitization and never be interpolated directly into prompts as instructions.
+2. **Untrusted Data Boundary:** All external documents, user uploads, and web search results are treated strictly as untrusted data. They must pass schema validation, be encapsulated within structured data boundaries, and never be interpolated directly into prompts as executable instructions. Python AST parsing applies exclusively to generated calculation code, not natural-language prose.
 3. **Strict Epistemic Distinction:** System outputs must never label an unverified hypothesis or web conjecture as a verified finding.
 4. **Mandatory Citation Anchoring:** Every statement asserted as fact must carry a verified `ProvenancePointer` referencing specific document pages or chunks.

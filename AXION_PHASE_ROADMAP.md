@@ -115,24 +115,37 @@
 
 ---
 
-## 2. Security Architecture & Document Rights
+## 2. Security Architecture, Untrusted Data Boundary & Document Rights
 
 ### 2.1 Untrusted Data Boundary & Prompt Injection Defense
-- **Fundamental Rule:** All external text, user-uploaded PDFs, and acquired articles are treated strictly as **untrusted data**, never as executable instructions.
-- **Mitigation Architecture:**
-  - Document text is never directly interpolated into system instructions or execution prompts.
-  - Chunks are analyzed via AST-restricted parsers and structured JSON extractors.
-  - Extracted claims are subjected to regex filters detecting prompt-injection phrases (e.g. *"ignore instructions"*, *"override system"*, *"system prompt"*). Any document triggering these heuristics is quarantined and flagged as an adversarial injection attempt.
-- **Tool Sandbox Isolation:**
-  - Mathematical calculations run in a restricted subprocess with `builtins` sanitized (no `os`, `sys`, `subprocess`, `open`, `eval`).
-  - Strict CPU limits ($2000\text{ ms}$) and memory caps ($256\text{ MB}$) per execution.
+- **Fundamental Principle:** All external text, user-uploaded PDFs, extracted document passages, acquired web content, and retrieved snippets must be treated strictly as **untrusted data**, never as executable instructions or trusted system directives.
+- **Clarification on AST Parsing:** Python Abstract Syntax Tree (AST) parsing applies **exclusively to the static analysis of generated Python code scripts** in Stage 05 (Reasoning and Calculations) and Component 8 (Hypothesis Tester). AST parsing **cannot be used to parse or secure natural-language prose chunks**, as arbitrary human language does not conform to Python syntax trees.
+- **Data Boundary & Injection Defense In Depth:**
+  - *Instruction/Content Disjunction:* System instructions, cognitive stage goals, and operational guardrails are defined strictly at the system prompt level. External document text is quarantined within structured, typed payload fields.
+  - *Structured Data Framing:* Document content is passed to LLMs inside explicit, typed JSON schemas or bounded data blocks.
+  - *Defense In Depth Limitation Notice:* Boundary delimiters, XML tags, and heuristic keyword filters (e.g. flagging phrases like *"ignore previous instructions"*, *"override system"*, *"system prompt"*) provide defense-in-depth and logging signals, but **do not alone establish a mathematically complete security guarantee against prompt injection**. Extracted text must never be granted direct tool-execution permissions or administrative system capabilities.
+  - *Safe Tool Triggering:* Tool invocations and mathematical solver scripts are generated exclusively by structured internal reasoning stages, never directly triggered by text found inside an external document chunk.
 
-### 2.2 Data Management, User Isolation & Retention
+### 2.2 Calculation Execution Sandbox & OS-Level Process Isolation
+- **Inadequacy of Restricted Built-ins:** Restricting Python `__builtins__` inside the same interpreter process (e.g., removing `open`, `__import__`, `eval`) **does not provide a secure sandbox**. In CPython, untrusted scripts can readily traverse the object inheritance tree (e.g. `().__class__.__base__.__subclasses__()`) to recover references to `os` or `sys` and execute arbitrary shell commands.
+- **Mandatory OS-Level Sandbox Specification:** Untrusted code execution (such as SymPy mathematical evaluation, numerical calculation, and dynamic ODE simulation) must occur inside an **isolated operating-system process boundary** with hard resource limits:
+  1. *Subprocess & Process Token Isolation:* The calculation worker must run as a separate, unprivileged subprocess.
+     - **Windows Environments:** Run under a restricted Windows Token with `SeRestricted` privileges, encapsulated within a **Windows Job Object** that enforces hard limits on active process counts, virtual memory caps, and CPU time slices.
+     - **Linux Environments:** Run inside an isolated namespace/container sandbox using **bubblewrap (`bwrap`)** or **seccomp-bpf** system call filtering, disallowing `execve`, `fork`, and socket creation syscalls.
+  2. *Filesystem Restrictions:* The calculation process must operate with a read-only root filesystem. Temporary scratch file creation is restricted to an isolated, ephemeral RAM disk (`tmpfs`) or dedicated per-task directory that is securely wiped immediately upon process termination.
+  3. *Network Isolation:* Complete prohibition of outbound network socket creation (`AF_INET`, `AF_INET6`). Untrusted calculation scripts cannot communicate over HTTP, DNS, or raw sockets.
+  4. *Hard Resource Limits & Timeouts:*
+     - Maximum CPU wall-clock timeout: $2000\text{ ms}$ (hard termination via OS kill signal, not catchable Python exceptions).
+     - Maximum RAM allocation: $256\text{ MB}$ (exceeding memory triggers immediate OS process termination).
+     - Controlled Standard I/O: Inter-process communication occurs strictly over unidirectional pipes exchanging serialized JSON inputs and outputs.
+- **Empirical Security Rule:** AXION **shall not claim that its execution sandbox is secure** until the sandbox architecture has been fully implemented, integrated, and subjected to automated adversarial penetration and escape test suites.
+
+### 2.3 Data Management, User Isolation & Retention
 - **Storage Location:** Raw documents are stored in `storage/documents/<user_id>/` with restricted filesystem permissions.
-- **Access Control & User Isolation:** Multi-tenant database schema enforces foreign-key partitioning on `user_id`. Queries and vector lookups are strictly scoped to the authenticated session.
+- **Access Control & User Isolation:** Multi-tenant database schema enforces foreign-key partitioning on `user_id`. Queries, vector lookups, Knowledge Graph traversals, and memory reads are strictly scoped to the authenticated session.
 - **Data Retention & Deletion:**
   - Users possess an explicit right to delete any uploaded document.
-  - Deletion triggers an atomic cascade: raw file is purged, vector embeddings in `document_chunks` are erased, and unverified graph nodes are pruned.
+  - Deletion triggers an atomic cascade: raw file is purged from disk, vector embeddings in `document_chunks` are erased, and unverified graph nodes are pruned.
 - **Encryption:** AES-256 encryption at rest for document storage; TLS 1.3 in transit.
 - **Copyright & Fair Use:** Documents are processed strictly for local research text-and-data mining. Source attribution, original publisher DOIs, and license strings are permanently bound to every extracted chunk.
 

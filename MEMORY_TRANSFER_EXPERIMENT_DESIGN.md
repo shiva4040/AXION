@@ -25,8 +25,8 @@ A fixed seed set of 6 foundational verified findings is established prior to eva
 [
   {
     "finding_id": "FIND-SEED-001",
-    "title": "Hagen-Poiseuille Viscous Hydraulic Flow Resistance",
-    "statement": "The volumetric hydraulic flow resistance in a circular conduit under laminar, fully developed Newtonian flow is R_hyd = (8 * mu * L) / (pi * r^4).",
+    "title": "Hagen-Poiseuille Viscous Hydraulic Flow Resistance (Fully Developed Laminar Flow)",
+    "statement": "In fully developed, steady, laminar flow of an incompressible Newtonian fluid through a straight circular conduit of radius r and length L, the volumetric hydraulic flow resistance is R_hyd = (8 * mu * L) / (pi * r^4), and the resulting viscous pressure drop is Delta_P = Q * R_hyd.",
     "source_evidence": "doc-seed-fluid-dynamics-p12",
     "equations": ["R_hyd = (8 * mu * L) / (pi * r**4)", "Delta_P = Q * R_hyd"],
     "variables": {
@@ -37,12 +37,29 @@ A fixed seed set of 6 foundational verified findings is established prior to eva
       "Delta_P": "[M][L]-1[T]-2",
       "Q": "[L]3[T]-1"
     },
-    "conditions": ["laminar_flow", "Reynolds_number < 2100", "circular_cross_section", "rigid_walls"],
-    "assumptions": ["incompressible_fluid", "no_slip_boundary", "steady_state"],
-    "limitations": ["Inapplicable to turbulent regimes (Re >= 2100)", "Inapplicable to non-Newtonian slurries"],
+    "conditions": [
+      "laminar_flow (Reynolds_number < 2100)",
+      "Newtonian_fluid_behavior (constant dynamic viscosity mu)",
+      "circular_cross_section_uniform_bore",
+      "rigid_conduit_walls (zero elasticity)",
+      "fully_developed_flow (hydrodynamic entrance length satisfied: L / D >= 0.05 * Re to 0.06 * Re as reference-dependent engineering estimate)"
+    ],
+    "assumptions": [
+      "steady_state_flow (zero time-dependent acceleration)",
+      "incompressible_fluid (constant density)",
+      "no_slip_boundary_at_wall",
+      "isothermal_viscosity (negligible viscous self-heating)"
+    ],
+    "limitations": [
+      "Inapplicable to turbulent regimes (Re >= 2100)",
+      "Inapplicable to non-Newtonian fluids (blood in microvessels, polymer solutions, slurries)",
+      "Inapplicable to entrance-region flow (L / D < 0.05 * Re) where Hagenbach pressure loss correction is required",
+      "Inapplicable to compliant/elastic biological vessels"
+    ],
     "permitted_applicability_range": {
       "Reynolds_number": { "min": 0.0, "max": 2100.0, "unit": "dimensionless" },
-      "pipe_radius": { "min": 1e-6, "max": 0.5, "unit": "m" }
+      "pipe_radius": { "min": 1e-6, "max": 0.5, "unit": "m" },
+      "aspect_ratio_L_over_D": { "min": 10.0, "max": 1e6, "unit": "dimensionless" }
     },
     "verification_record": {
       "verified_by": "Stage06_HypothesisTester",
@@ -53,21 +70,33 @@ A fixed seed set of 6 foundational verified findings is established prior to eva
   },
   {
     "finding_id": "FIND-SEED-002",
-    "title": "Fourier Linear Thermal Conduction Resistance",
-    "statement": "The one-dimensional steady-state conductive thermal resistance across a planar slab of area A and thickness L is R_th = L / (k * A).",
+    "title": "Fourier Linear Conductive Thermal Resistance",
+    "statement": "The one-dimensional steady-state conductive thermal resistance across a planar slab of area A, thickness L, and thermal conductivity k is R_th = L / (k * A). The temperature drop across the slab is Delta_T = Q_heat_rate * R_th, where Q_heat_rate is the total heat-transfer rate in Watts.",
     "source_evidence": "doc-seed-thermo-physics-p45",
-    "equations": ["R_th = L / (k * A)", "Delta_T = q_flux * R_th"],
+    "equations": ["R_th = L / (k * A)", "Delta_T = Q_heat_rate * R_th"],
     "variables": {
       "R_th": "[M]-1[L]-2[T]3[Theta]1",
       "k": "[M][L]1[T]-3[Theta]-1",
       "A": "[L]2",
       "L": "[L]",
       "Delta_T": "[Theta]",
-      "q_flux": "[M][L]2[T]-3"
+      "Q_heat_rate": "[M][L]2[T]-3"
     },
-    "conditions": ["steady_state", "1D_heat_flux", "isotropic_conductivity"],
-    "assumptions": ["temperature_independent_k", "no_internal_generation"],
-    "limitations": ["Inapplicable to transient thermal spikes", "Inapplicable to radiative boundary dominance"],
+    "conditions": [
+      "steady_state_thermal_conduction",
+      "1D_perpendicular_heat_flow",
+      "isotropic_thermal_conductivity"
+    ],
+    "assumptions": [
+      "temperature_independent_thermal_conductivity_k",
+      "zero_internal_heat_generation",
+      "constant_cross_sectional_area_A"
+    ],
+    "limitations": [
+      "Inapplicable to transient thermal spikes or dynamic heating",
+      "Inapplicable to radiative boundary dominance or high convective Biot numbers",
+      "Distinguishes heat-transfer rate Q_heat_rate (Watts) from heat flux density q'' (W/m^2)"
+    ],
     "permitted_applicability_range": {
       "temperature_kelvin": { "min": 50.0, "max": 800.0, "unit": "K" }
     },
@@ -131,23 +160,39 @@ A fixed seed set of 6 foundational verified findings is established prior to eva
   },
   {
     "finding_id": "FIND-SEED-005",
-    "title": "Ideal Gas Mechanical Isothermal Compression Work",
-    "statement": "The mechanical work required to reversibly compress n moles of an ideal gas from V_1 to V_2 at constant temperature T is W = n * R_gas * T * ln(V_1 / V_2).",
+    "title": "Ideal Gas Mechanical Isothermal Compression & Expansion Work",
+    "statement": "The mechanical work done ON an ideal gas system to reversibly and isothermally compress n moles from initial volume V_1 to final volume V_2 (where V_1 > V_2) at constant temperature T is W_on = n * R_gas * T * ln(V_1 / V_2). Conversely, the work done BY the expanding gas on the surroundings is W_by = -W_on = n * R_gas * T * ln(V_2 / V_1).",
     "source_evidence": "doc-seed-thermo-physics-p67",
-    "equations": ["W = n * R_gas * T * log(V_1 / V_2)"],
+    "equations": [
+      "W_on = n * R_gas * T * log(V_1 / V_2)",
+      "W_by = n * R_gas * T * log(V_2 / V_1)"
+    ],
     "variables": {
-      "W": "[M][L]2[T]-2",
+      "W_on": "[M][L]2[T]-2",
+      "W_by": "[M][L]2[T]-2",
       "n": "[N]",
       "R_gas": "[M][L]2[T]-2[Theta]-1[N]-1",
       "T": "[Theta]",
       "V_1": "[L]3",
       "V_2": "[L]3"
     },
-    "conditions": ["isothermal_process", "ideal_gas_behavior", "reversible_quasistatic"],
-    "assumptions": ["negligible_intermolecular_forces", "equilibrium_at_all_states"],
-    "limitations": ["Inapplicable near critical point or high pressure (P > 50 atm)"],
+    "conditions": [
+      "isothermal_process (constant temperature T)",
+      "ideal_gas_behavior (obeying P * V = n * R_gas * T)",
+      "reversible_quasistatic_compression_or_expansion"
+    ],
+    "assumptions": [
+      "negligible_intermolecular_potential_forces",
+      "thermodynamic_equilibrium_at_all_intermediate_states",
+      "sign_convention_explicitly_declared (W_on > 0 for compression where V_1 > V_2; W_by > 0 for expansion where V_2 > V_1)"
+    ],
+    "limitations": [
+      "Inapplicable near the gas-liquid critical point or high pressures (P > 50 atm)",
+      "Inapplicable to fast irreversible adiabatic or non-quasistatic throttling processes"
+    ],
     "permitted_applicability_range": {
-      "pressure": { "min": 1e3, "max": 5e6, "unit": "Pa" }
+      "pressure": { "min": 1e3, "max": 5e6, "unit": "Pa" },
+      "temperature_kelvin": { "min": 150.0, "max": 1200.0, "unit": "K" }
     },
     "verification_record": {
       "verified_by": "Stage06_HypothesisTester",
