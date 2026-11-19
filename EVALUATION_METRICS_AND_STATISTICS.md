@@ -1,45 +1,89 @@
 # AXION — Evaluation Metrics and Statistical Methodology
 
-**Document Version:** 1.0.0  
+**Document Version:** 2.0.0 (Audited & Verified)  
 **Phase Target:** Phase 0 Metric & Evaluation Foundation  
 **Scope:** Formal Mathematical Definitions, Plain RAG Baseline, and Reproducibility Standards  
 **Date:** November 19, 2026  
 
 ---
 
-## 1. The Plain RAG Baseline Specification
+## 1. The Plain RAG Baseline & Fair Experimental Controls
 
-To guarantee a fair, uncompromised comparison:
-1. **Model Parity:** The Plain RAG Baseline must use the exact same underlying LLM, embedding model, and context window configuration as the AXION pipeline.
-2. **Information Parity:** The baseline receives the identical corpus of documents, identical query string, and identical retrieval budget (top-$k$ chunks).
-3. **Prompt Parity:** The baseline uses a state-of-the-art citation-grounded RAG prompt instructing it to answer strictly based on retrieved evidence and preserve citations.
-4. **No Unearned Advantage:** AXION cannot access additional external tools, search APIs, or knowledge stores during a baseline comparison run unless the experiment is explicitly evaluating the ablation of that component.
+To evaluate whether AXION's structured composition and reasoning pipeline achieves genuine scientific advantages over conventional Retrieval-Augmented Generation (RAG), both systems must be compared under **rigorous, identical experimental controls**.
+
+Rather than forcing both systems to receive identical pre-selected chunks (which artificially suppresses AXION's ability to demonstrate multi-step retrieval, query decomposition, or graph-guided discovery), the benchmark enforces the following **seven experimental parity controls**:
+
+1. **Identical Source Corpus & Vector Snapshot:** Both systems query against the exact same indexed document collection, text chunk versions, and vector store embeddings.
+2. **Identical Evaluation Question Set:** Both systems receive identical question text without modifications, prefixes, or domain hints.
+3. **Identical Underlying LLM & Checkpoint:** Both systems utilize the exact same model checkpoint (e.g. `gpt-4o-2024-08-06` or `gemini-1.5-pro-002`) and provider endpoint.
+4. **Identical External Information Boundaries:** Neither system is permitted access to external web search, tools, or memory stores unless an ablation specifically evaluates that capability.
+5. **Comparable Retrieval & Context Budgets:** Both systems operate under matched resource budgets: maximum top-$k$ chunk budget ($k = 5$ standard chunks) and maximum context window budget ($2048$ context tokens).
+6. **Matched Generation Hyperparameters:** Identical sampling temperature ($T = 0.0$ for deterministic execution), top-$p = 1.0$, and fixed random seed where supported.
+7. **Identical Evaluation Rubric:** Both system outputs are graded by the exact same programmatic checkers and blinded human scoring criteria.
+
+*(Note: If identical chunking is tested, it is evaluated separately as an isolated Stage 03/05 ablation test, not as an execution-time constraint on Stage 02).*
 
 ---
 
-## 2. Formal Metric Definitions Across Pipeline Dimensions
+## 2. Statistical Interpretation & Evaluation Hierarchy
 
-### 2.1 Acquisition Metrics
-Let $D_{\text{rel}}$ be the set of ground-truth relevant document chunks required to solve a problem, and let $D_{\text{ret}}$ be the set of chunks retrieved by the system.
+To avoid over-interpreting small sample sizes or conflating code reliability with scientific discovery, AXION explicitly distinguishes four levels of evaluation:
 
-- **Retrieval Precision ($P_{\text{ret}}$):**
-  $$P_{\text{ret}} = \frac{|D_{\text{ret}} \cap D_{\text{rel}}|}{|D_{\text{ret}}|}$$
-- **Retrieval Recall ($R_{\text{ret}}$):**
-  $$R_{\text{ret}} = \frac{|D_{\text{ret}} \cap D_{\text{rel}}|}{|D_{\text{rel}}|}$$
+```
++----------------------------------------------------------------------------------------------------+
+|                               FOUR LEVELS OF EVALUATION INTERPRETATION                             |
++----------------------------+-----------------------------------------------------------------------+
+| 1. Engineering Acceptance  | Deterministic verification that code executes reliably without error: |
+|    Gates                   | zero crashes, valid schemas, enforced timeouts, and exact quotations. |
++----------------------------+-----------------------------------------------------------------------+
+| 2. Pilot Benchmark         | Empirical point estimates calculated over 180 development questions   |
+|    Measurements            | (N = 30 per category) to guide debugging and feature tuning.          |
++----------------------------+-----------------------------------------------------------------------+
+| 3. Statistical Evidence    | Formal paired hypothesis testing (Delta_i = Score_AXION - Score_RAG), |
+|    of Improvement          | 95% bootstrap confidence intervals, and two-tailed permutation tests. |
++----------------------------+-----------------------------------------------------------------------+
+| 4. Evidence of             | Demonstrated transfer and superior reasoning across diverse, unseen   |
+|    Generalization          | scientific domains. Explicitly NOT claimed from pilot benchmarks.     |
++----------------------------+-----------------------------------------------------------------------+
+```
+
+> **Epistemic Limitation Warning on Sample Sizing:** A sample size of $N = 30$ questions per category is a diagnostic pilot benchmark, **not a statistically conclusive demonstration of general superiority**. At an observed proportion of $50\%$, the binomial standard error for $n = 30$ is $\pm 9.1\%$, yielding a 95% confidence interval of $[32\%, 68\%]$. Consequently, observed differences $\le 15\%$ cannot be treated as statistically decisive. Claims of general cross-domain superiority or scientific transfer are strictly deferred to Phase 5 locked benchmark evaluations.
+
+---
+
+## 3. Formal Metric Definitions & Calculation Procedures
+
+### 3.1 Acquisition Metrics
+
+Let $D_{\text{required}, i}$ be the set of ground-truth relevant document chunks required to solve problem $i$, and let $D_{\text{retrieved}, i}$ be the set of chunks retrieved in the top-5 by Stage 02.
+
+- **Retrieval Recall@5 ($R_{\text{ret@5}}$):**
+  Micro-averaged across all questions in the evaluation category:
+  $$R_{\text{ret@5}} = \frac{\sum_{i=1}^{N} |D_{\text{retrieved\_top5}, i} \cap D_{\text{required}, i}|}{\sum_{i=1}^{N} |D_{\text{required}, i}|}$$
+  - *Multiple Passages:* If problem $i$ requires 3 chunks and 2 are retrieved, numerator gains 2 and denominator gains 3.
+  - *Failed Queries / Timeouts:* If Stage 02 fails or exceeds $10.0\text{ s}$, $|D_{\text{retrieved\_top5}, i} \cap D_{\text{required}, i}| = 0$; denominator still increases by $|D_{\text{required}, i}|$.
+  - *Retries:* Zero retries allowed in formal evaluation.
+
 - **Evidence Coverage ($C_{\text{evid}}$):**
-  $$C_{\text{evid}} = \begin{cases} 1 & \text{if } D_{\text{rel}} \subseteq D_{\text{ret}} \\ 0 & \text{otherwise} \end{cases}$$
+  Binary macro proportion evaluated per question:
+  $$C_{\text{evid}} = \frac{1}{N} \sum_{i=1}^{N} \mathbb{I}(D_{\text{required}, i} \subseteq D_{\text{retrieved}, i})$$
+  where $\mathbb{I}$ is the indicator function ($1$ if **every** required chunk was retrieved, $0$ otherwise). Missing even one required premise yields $C_{\text{evid}} = 0$.
 
-### 2.2 Extraction Metrics
-Let $C_{\text{true}}$ be the set of annotated atomic claims and conditions in the retrieved passages, and let $C_{\text{ext}}$ be the extracted claims.
+### 3.2 Extraction Metrics
+
+Let $C_{\text{true}, i}$ be the set of annotated atomic claims and governing conditions in the retrieved passages, and let $C_{\text{ext}, i}$ be the extracted claims emitted by Stage 03.
 
 - **Claim Extraction Precision ($P_{\text{claim}}$):**
-  $$P_{\text{claim}} = \frac{|C_{\text{ext}} \cap C_{\text{true}}|}{|C_{\text{ext}}|}$$
+  $$P_{\text{claim}} = \frac{\sum_{i=1}^{N} |C_{\text{ext}, i} \cap C_{\text{true}, i}|}{\sum_{i=1}^{N} |C_{\text{ext}, i}|}$$
 - **Claim Extraction Recall ($R_{\text{claim}}$):**
-  $$R_{\text{claim}} = \frac{|C_{\text{ext}} \cap C_{\text{true}}|}{|C_{\text{true}}|}$$
+  $$R_{\text{claim}} = \frac{\sum_{i=1}^{N} |C_{\text{ext}, i} \cap C_{\text{true}, i}|}{\sum_{i=1}^{N} |C_{\text{true}, i}|}$$
 - **Evidence Attribution Accuracy ($A_{\text{attr}}$):**
-  Fraction of extracted claims whose linked `ProvenancePointer` correctly matches the exact source document ID, chunk ID, and character span.
+  Micro-averaged fraction of extracted claims with a valid `ProvenancePointer`:
+  $$A_{\text{attr}} = \frac{\sum_{c \in C_{\text{ext}}} \mathbb{I}(\text{ValidProvenance}(c))}{|C_{\text{ext}}|}$$
+  $\text{ValidProvenance}(c) = 1$ if and only if the cited `document_id` and `chunk_id` exist in the database and the cited character offsets contain the verbatim asserted evidence. If Stage 03 emits no claims or fails, all ground-truth expected claims are scored as un-attributed.
 
-### 2.3 Composition Metrics
+### 3.3 Composition Metrics
+
 - **Relationship Accuracy ($A_{\text{rel}}$):**
   Percentage of extracted inter-concept relations whose direction, semantic relation type (`GOVERNED_BY`, `PROPORTIONAL_TO`, etc.), and participating concepts match ground truth.
 - **Cross-Document Composition Accuracy ($A_{\text{comp}}$):**
@@ -47,7 +91,8 @@ Let $C_{\text{true}}$ be the set of annotated atomic claims and conditions in th
 - **Applicability-Condition Accuracy ($A_{\text{cond}}$):**
   Fraction of governing physical constraints (e.g., $T < 300\text{ K}$, laminar flow) accurately preserved and transferred into the composed system.
 
-### 2.4 Reasoning and Calculation Metrics
+### 3.4 Reasoning and Calculation Metrics
+
 - **Calculation Accuracy ($A_{\text{calc}}$):**
   Binary indicator evaluated against mathematical tolerance:
   $$A_{\text{calc}} = \begin{cases} 1 & \text{if } \left|\frac{Y_{\text{computed}} - Y_{\text{ground\_truth}}}{Y_{\text{ground\_truth}}}\right| \le 0.01 \\ 0 & \text{otherwise} \end{cases}$$
@@ -56,30 +101,37 @@ Let $C_{\text{true}}$ be the set of annotated atomic claims and conditions in th
 - **Reasoning Validity ($V_{\text{reas}}$):**
   Formal verification that the inferential DAG contains no cycles, no orphaned deductions, and no unjustified assumptions.
 
-### 2.5 Verification and Abstention Metrics
+### 3.5 Verification and Abstention Metrics
+
+- **Exact Quotation Accuracy ($A_{\text{quote}}$):**
+  Deterministic substring check:
+  $$A_{\text{quote}} = \frac{\sum_{q \in Q_{\text{emitted}}} \mathbb{I}(q \text{ is exact substring of source text})}{|Q_{\text{emitted}}|}$$
+  Asserts that quoted evidence strings exist verbatim in source chunks (distinguished from semantic entailment).
 - **Citation Accuracy ($A_{\text{cite}}$):**
   Fraction of emitted citations where the cited sentence genuinely entails the statement made in the answer.
-- **Quotation Verification Accuracy ($A_{\text{quote}}$):**
-  Fraction of quotation strings that match an exact verbatim substring within the cited document.
 - **Contradiction Detection F1 ($F1_{\text{conflict}}$):**
   Harmonic mean of precision and recall in flagging planted conflicts between documents.
 - **Correct Abstention Rate ($R_{\text{abstain}}$):**
   On questions designed with insufficient evidence (Category 5):
-  $$R_{\text{abstain}} = \frac{N_{\text{correctly\_abstained}}}{N_{\text{insufficient\_questions}}}$$
+  $$R_{\text{abstain}} = \frac{1}{N_{\text{insufficient}}} \sum_{i=1}^{N_{\text{insufficient}}} \mathbb{I}(\text{verdict}_i == \text{"ABSTAIN\_INSUFFICIENT\_EVIDENCE"})$$
   Any hallucinated or speculative answer on an insufficient question is penalized as an error ($0$).
 
-### 2.6 Memory and Transfer Metrics
+### 3.6 Memory and Transfer Metrics
+
 - **Memory Reuse Rate ($R_{\text{reuse}}$):** Fraction of applicable problems where relevant verified findings are successfully retrieved from Stage 07.
 - **Transfer Accuracy ($A_{\text{trans}}$):** Fraction of cross-domain transfer queries solved correctly.
 - **False-Transfer Rate ($R_{\text{false\_trans}}$):**
   $$R_{\text{false\_trans}} = \frac{N_{\text{transfers\_accepted\_when\_inapplicable}}}{N_{\text{inapplicable\_transfer\_questions}}}$$
   *Acceptance Gate:* Must equal $0.00$.
 
-### 2.7 Product & Operational Metrics
+### 3.7 Product & Operational Metrics
+
 - **End-to-End Latency ($T_{\text{e2e}}$):** Wall-clock time in milliseconds from request receipt to answer emission.
 - **Per-Stage Latency ($T_{\text{stage}}$):** Granular breakdown across Stages 01 through 08.
 - **Token Efficiency & Estimated Cost:** Prompt tokens, completion tokens, and dollar cost computed at public provider rates.
-- **System Failure Rate ($R_{\text{fail}}$):** Frequency of unhandled pipeline exceptions or timeouts.
+- **Pipeline Failure and Timeout Rate ($R_{\text{fail}}$):**
+  $$R_{\text{fail}} = \frac{N_{\text{crashes}} + N_{\text{timeouts\_gt\_10s}}}{N_{\text{total\_queries}}}$$
+  Must remain strictly below $5.0\%$. Zero retries permitted.
 
 ---
 

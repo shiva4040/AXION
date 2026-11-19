@@ -50,30 +50,35 @@ This report provides the human owner with a transparent, classified accounting o
 The secondary real-document evaluation corpus (`REAL_DOCUMENT_EVALUATION_PLAN.md`) was completely overhauled. It now contains **four fully verified, peer-reviewed, open-access publications** centered on a coherent scientific discipline: **Vehicle-Integrated Photovoltaics (VIPV) and Solar Electric Vehicles (SEVs)**.
 
 ```
-+-------------------------------------------------------------------------------------------------------------------------------+
-|                                      VERIFIED REAL-DOCUMENT BIBLIOGRAPHIC REGISTRY                                            |
-+---+----------------------------------------------------+-------------------------+--------------------+-----------------------+
-| # | Article Title & Authors                            | Journal / Year / Volume | DOI & Resolver URL | Verification Source   |
-+---+----------------------------------------------------+-------------------------+--------------------+-----------------------+
-| 1 | "Solar-Powered Electric Vehicles: Comprehensive     | Energies (MDPI)         | 10.3390/en18143650 | Official MDPI &       |
-|   | Review of Technology Advancements, Challenges,     | 2025, Vol. 18(14), 3650 | https://doi.org/   | Crossref metadata.    |
-|   | and Future Prospects"                              |                         | 10.3390/en18143650 | CC-BY 4.0 Open Access.|
-|   | (Oluwalana & Grzesik)                              |                         |                    |                       |
-+---+----------------------------------------------------+-------------------------+--------------------+-----------------------+
-| 2 | "Feasibility Analysis and Optimisation of Vehicle- | World Electric Vehicle  | 10.3390/wevj16110610| Official MDPI WEVJ   |
-|   | Integrated Photovoltaic (VIPV) Systems for         | Journal (MDPI)          | https://doi.org/   | & Crossref metadata.  |
-|   | Sustainable Transportation"                        | 2025, Vol. 16(11), 610  | 10.3390/wevj16110610| CC-BY 4.0 Open Access.|
-|   | (Smitheram & Gatavi)                               |                         |                    |                       |
-+---+----------------------------------------------------+-------------------------+--------------------+-----------------------+
-| 3 | "A Novel Model Chain for Analysing the Performance | World Electric Vehicle  | 10.3390/wevj16110619| Official MDPI WEVJ   |
-|   | of Vehicle Integrated Photovoltaic (VIPV) Systems" | Journal (MDPI)          | https://doi.org/   | & Crossref metadata.  |
-|   | (Samadi, Ala, Brito, Traverso, et al.)             | 2025, Vol. 16(11), 619  | 10.3390/wevj16110619| CC-BY 4.0 Open Access.|
-+---+----------------------------------------------------+-------------------------+--------------------+-----------------------+
-| 4 | "Investigation on the Aerodynamics and Energy Gain | World Electric Vehicle  | 10.3390/wevj17090453| Official MDPI WEVJ   |
-|   | from Roof-Mounted Photovoltaic Systems for Plug-In | Journal (MDPI)          | https://doi.org/   | & Crossref metadata.  |
-|   | Hybrid and Electric Vehicles"                      | 2026, Vol. 17(9), 453   | 10.3390/wevj17090453| CC-BY 4.0 Open Access.|
-|   | (Barabas, Matei, Breban)                           |                         |                    |                       |
-+---+----------------------------------------------------+-------------------------+--------------------+-----------------------+
++-------------------------------------------------------------------------------------------------------------------------------------------------+
+|                                                 VERIFIED REAL-DOCUMENT BIBLIOGRAPHIC & LICENSING REGISTRY                                       |
++---+----------------------------------------------------+-------------------------+--------------------+-----------------------------------------+
+| # | Article Title & Authors                            | Journal / Year / Volume | DOI & Resolver URL | Exact Publisher License Statement & URL |
++---+----------------------------------------------------+-------------------------+--------------------+-----------------------------------------+
+| 1 | "Solar-Powered Electric Vehicles: Comprehensive     | Energies (MDPI)         | 10.3390/en18143650 | Open Access: CC BY 4.0                  |
+|   | Review of Technology Advancements, Challenges,     | 2025, Vol. 18(14), 3650 | https://doi.org/   | https://www.mdpi.com/1996-1073/18/14/   |
+|   | and Future Prospects"                              |                         | 10.3390/en18143650 | 3650                                    |
+|   | (Oluwalana & Grzesik)                              |                         |                    | License: https://creativecommons.org/   |
+|   |                                                    |                         |                    | licenses/by/4.0/                        |
++---+----------------------------------------------------+-------------------------+--------------------+-----------------------------------------+
+| 2 | "Feasibility Analysis and Optimisation of Vehicle- | World Electric Vehicle  | 10.3390/wevj16110610| Open Access: CC BY 4.0                  |
+|   | Integrated Photovoltaic (VIPV) Systems for         | Journal (MDPI)          | https://doi.org/   | https://www.mdpi.com/2075-4431/16/11/   |
+|   | Sustainable Transportation"                        | 2025, Vol. 16(11), 610  | 10.3390/wevj16110610| 610                                     |
+|   | (Smitheram & Gatavi)                               |                         |                    | License: https://creativecommons.org/   |
+|   |                                                    |                         |                    | licenses/by/4.0/                        |
++---+----------------------------------------------------+-------------------------+--------------------+-----------------------------------------+
+| 3 | "A Novel Model Chain for Analysing the Performance | World Electric Vehicle  | 10.3390/wevj16110619| Open Access: CC BY 4.0                  |
+|   | of Vehicle Integrated Photovoltaic (VIPV) Systems" | Journal (MDPI)          | https://doi.org/   | https://www.mdpi.com/2075-4431/16/11/   |
+|   | (Samadi, Ala, Brito, Traverso, et al.)             | 2025, Vol. 16(11), 619  | 10.3390/wevj16110619| 619                                     |
+|   |                                                    |                         |                    | License: https://creativecommons.org/   |
+|   |                                                    |                         |                    | licenses/by/4.0/                        |
++---+----------------------------------------------------+-------------------------+--------------------+-----------------------------------------+
+| 4 | "Investigation on the Aerodynamics and Energy Gain | World Electric Vehicle  | 10.3390/wevj17090453| Open Access: CC BY 4.0                  |
+|   | from Roof-Mounted Photovoltaic Systems for Plug-In | Journal (MDPI)          | https://doi.org/   | https://www.mdpi.com/2075-4431/17/9/    |
+|   | Hybrid and Electric Vehicles"                      | 2026, Vol. 17(9), 453   | 10.3390/wevj17090453| 453                                     |
+|   | (Barabas, Matei, Breban)                           |                         |                    | License: https://creativecommons.org/   |
+|   |                                                    |                         |                    | licenses/by/4.0/                        |
++---+----------------------------------------------------+-------------------------+--------------------+-----------------------------------------+
 ```
 
 ### Research Coverage Across the Four Papers
@@ -103,13 +108,13 @@ In `AXION_PHASE_ROADMAP.md` (Section 2) and `AXION_FINAL_ARCHITECTURE.md` (Secti
 
 `PHASE_1_IMPLEMENTATION_CONTRACT.md` (Section 4) now includes comprehensive, measurable acceptance criteria:
 
-1. **Retrieval Recall@5 ($\ge 0.85$):** Evaluated on Category 1 ($N = 30$ development questions). Denominator is total ground-truth required chunks across the category.
-2. **Evidence Coverage ($\ge 0.80$):** Evaluated on Categories 1 and 3 ($N = 60$ questions). Denominator is 60; numerator is questions where 100% of required multi-hop premises were retrieved.
-3. **Evidence Attribution Accuracy ($\ge 0.90$):** Evaluated on extracted claims. Asserts that $\ge 90\%$ of claims carry a valid document ID, chunk ID, and exact character span.
+1. **Retrieval Recall@5 ($\ge 0.85$):** Evaluated micro-averaged on Category 1 ($N = 30$ development questions). Denominator is total ground-truth required chunks across the category.
+2. **Evidence Coverage ($\ge 0.80$):** Binary macro proportion evaluated on Categories 1 and 3 ($N = 60$ questions). Asserts that 100% of required multi-hop premises were retrieved into the context window.
+3. **Evidence Attribution Accuracy ($\ge 0.90$):** Micro-averaged on extracted claims. Asserts that $\ge 90\%$ of claims carry a valid document ID, chunk ID, and exact character span.
 4. **Exact Quotation Accuracy ($= 100.0\%$):** Strict deterministic string-matching check asserting that quoted evidence strings exist verbatim in source chunks (distinguished from semantic evidence entailment).
 5. **Correct Abstention Rate ($\ge 90.0\%$):** Evaluated on Category 5 ($N = 30$ unanswerable questions). Any speculative answer or compliance with prompt injections scores $0$.
 6. **Pipeline Failure & Timeout Rate ($< 5.0\%$):** Evaluated across all 180 development queries. Crashes or executions exceeding $10.0\text{ s}$ must remain below $5\%$.
-7. **Runtime Baseline Parity ($= 100.0\%$):** Runtime assertion verifying that AXION and `BaselineController` receive identical chunk inputs.
+7. **Experimental Baseline Controls ($= 100.0\%$):** Verified runtime conformance with all seven experimental controls (same corpus, same questions, same LLM version, same external tools, matched context/retrieval budgets, matched temperature/seed, identical grading rubric).
 8. **Reproducibility Envelope Compliance ($= 100.0\%$):** Verified JSONL logs recording git commit, model version, temperature, and prompt hashes.
 
 ---
@@ -123,7 +128,22 @@ In `MEMORY_TRANSFER_EXPERIMENT_DESIGN.md`:
 
 ---
 
-## 6. Codebase Health & Regression Audit
+## 6. Statistical Interpretation & Acknowledged Scientific Limitations
+
+To prevent premature claims or statistical overreach, Phase 0 establishes explicit epistemic boundaries:
+
+1. **Distinction of Evaluation Levels:**
+   - *Engineering Acceptance Gates:* Deterministic assertions that components execute reliably, catch exceptions, output valid schemas, and pass unit tests.
+   - *Pilot Benchmark Measurements:* Point estimates on the 180 development items ($N = 30$ per category).
+   - *Statistical Evidence of Improvement:* Paired permutation hypothesis tests and bootstrap 95% confidence intervals comparing AXION to the Plain RAG baseline.
+   - *Evidence of Generalization:* Demonstration of transfer to unseen, diverse scientific domains.
+2. **Small-Sample Pilot Limitation:** $N = 30$ per category carries a binomial standard error of $\pm 9.1\%$ at $p = 0.50$. Consequently, **the pilot benchmark CANNOT prove general superiority or broad scientific transfer**.
+3. **Locked Test Set Inaccessibility:** The 180 locked test questions, documents, and ground-truth answers remain strictly external and air-gapped from development agents.
+4. **No Premature Superiority Claims:** Neither general superiority nor scientific knowledge transfer is claimed or established in Phase 0. That question remains the empirical subject of the Phase 5 locked benchmark evaluation.
+
+---
+
+## 7. Codebase Health & Regression Audit
 
 - **Test Runner:** `pytest` 9.2.0 on Python 3.12 (Windows).
 - **Execution Command:** `.venv\Scripts\python.exe -m pytest -q`
@@ -132,9 +152,9 @@ In `MEMORY_TRANSFER_EXPERIMENT_DESIGN.md`:
 
 ---
 
-## 7. Action Required: Human Owner Review & Authorization
+## 8. Action Required: Human Owner Review & Authorization
 
-All research designs, benchmark engineering specifications, data schemas, memory experiment protocols, security boundaries, and evaluation contracts are now verified, complete, and aligned with scientific standards.
+All research designs, benchmark engineering specifications, data schemas, memory experiment protocols, security boundaries, and evaluation contracts are now verified, sound, and ready for human owner sign-off.
 
 **Phase 0 is ready for formal sign-off.**
 

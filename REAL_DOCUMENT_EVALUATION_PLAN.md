@@ -17,9 +17,9 @@ This document specifies a **secondary evaluation suite** consisting of **four fu
 
 ---
 
-## 2. Verified Real-World Open-Access Corpus
+## 2. Verified Real-World Open-Access Corpus & Licensing Records
 
-Every paper listed below has been independently verified through official publisher repositories (MDPI) and the Crossref registry. All four articles are published under the **Creative Commons Attribution (CC-BY 4.0)** license, permitting unrestricted academic text-and-data mining, quotation, and redistribution with attribution.
+Every publication listed below has been independently verified through official publisher landing pages (MDPI) and Crossref metadata records. Each article's explicit publisher license statement and verification URL were audited individually.
 
 ```
 +--------------------------------------------------------------------------------------------------------------------------+
@@ -28,47 +28,63 @@ Every paper listed below has been independently verified through official publis
 | 1. "Solar-Powered Electric Vehicles: Comprehensive Review of Technology Advancements, Challenges, and Future Prospects"  |
 |    - Authors: Oluwapelumi John Oluwalana, Katarzyna Grzesik                                                              |
 |    - Affiliation: AGH University of Krakow, Poland                                                                       |
-|    - Journal: Energies (MDPI), Vol. 18, Issue 14, Article 3650 (July 2025)                                              |
+|    - Journal: Energies (MDPI), Vol. 18, Issue 14, Article 3650 (Published: July 2025)                                   |
 |    - DOI: 10.3390/en18143650                                                                                             |
-|    - URL: https://doi.org/10.3390/en18143650                                                                             |
-|    - Verification Source: Official MDPI article page and Crossref registry confirmed.                                    |
-|    - License: Creative Commons Attribution (CC-BY 4.0).                                                                  |
-|    - Key Focus Sections: Section 2 (Evolution of SEVs & PV Cell Architectures), Section 3 (Energy Management & Storage), |
-|      Section 4 (Technical Challenges: Shading, Thermal Derating, Efficiency Envelopes).                                  |
+|    - Article Landing Page: https://www.mdpi.com/1996-1073/18/14/3650                                                     |
+|    - Exact Publisher License Statement: "This is an open access article distributed under the Creative Commons           |
+|      Attribution License which permits unrestricted use, distribution, and reproduction in any medium, provided the      |
+|      original work is properly cited (CC BY 4.0)."                                                                       |
+|    - License Verification URL: https://creativecommons.org/licenses/by/4.0/                                              |
+|    - Copyright: © 2025 by the authors. Licensee MDPI, Basel, Switzerland.                                                |
+|    - Permitted Reuse: Full commercial & academic text/data mining, redistribution, and derivation with attribution.      |
+|    - Key Focus Sections: Section 2 (Evolution of SEVs & PV Cell Architectures, Table 1), Section 3 (Energy Management & |
+|      Storage Systems), Section 4 (Technical Challenges: Shading, Thermal Derating, Efficiency Limits).                   |
 +--------------------------------------------------------------------------------------------------------------------------+
 | 2. "Feasibility Analysis and Optimisation of Vehicle-Integrated Photovoltaic (VIPV) Systems for Sustainable             |
 |     Transportation"                                                                                                      |
 |    - Authors: Mark Smitheram, Ehsan Gatavi                                                                               |
-|    - Journal: World Electric Vehicle Journal (MDPI), Vol. 16, Issue 11, Article 610 (November 2025)                     |
+|    - Journal: World Electric Vehicle Journal (MDPI), Vol. 16, Issue 11, Article 610 (Published: November 6, 2025)        |
 |    - DOI: 10.3390/wevj16110610                                                                                           |
-|    - URL: https://doi.org/10.3390/wevj16110610                                                                           |
-|    - Verification Source: Official MDPI WEVJ repository and Crossref confirmed.                                          |
-|    - License: Creative Commons Attribution (CC-BY 4.0).                                                                  |
-|    - Key Focus Sections: Section 2 (System Architecture: Roof & Bonnet PV Layouts), Section 2.3 (MPPT Buck Converter    |
-|      Dynamics), Section 3 (Fuzzy Logic Energy Distribution between Traction and Auxiliary Batteries, Daily Range Gains).|
+|    - Article Landing Page: https://www.mdpi.com/2075-4431/16/11/610                                                      |
+|    - Exact Publisher License Statement: "This is an open access article distributed under the Creative Commons           |
+|      Attribution License which permits unrestricted use, distribution, and reproduction in any medium, provided the      |
+|      original work is properly cited (CC BY 4.0)."                                                                       |
+|    - License Verification URL: https://creativecommons.org/licenses/by/4.0/                                              |
+|    - Copyright: © 2025 by the authors. Licensee MDPI, Basel, Switzerland.                                                |
+|    - Permitted Reuse: Full commercial & academic text/data mining, redistribution, and derivation with attribution.      |
+|    - Key Focus Sections: Section 2 (System Architecture: Roof & Bonnet Layouts), Section 2.3 (MPPT Buck Converter       |
+|      Dynamics), Section 3 (Fuzzy Logic Controller for Dual-Battery Energy Routing, Daily Range Extension).               |
 +--------------------------------------------------------------------------------------------------------------------------+
 | 3. "A Novel Model Chain for Analysing the Performance of Vehicle Integrated Photovoltaic (VIPV) Systems"                 |
 |    - Authors: Hamid Samadi, Guido Ala, Miguel Centeno Brito, Marzia Traverso, Silvia Licciardi, Pietro Romano, Fabio Viola|
 |    - Affiliation: University of Palermo, Italy & University of Lisbon, Portugal                                          |
-|    - Journal: World Electric Vehicle Journal (MDPI), Vol. 16, Issue 11, Article 619 (November 2025)                     |
+|    - Journal: World Electric Vehicle Journal (MDPI), Vol. 16, Issue 11, Article 619 (Published: November 12, 2025)       |
 |    - DOI: 10.3390/wevj16110619                                                                                           |
-|    - URL: https://doi.org/10.3390/wevj16110619                                                                           |
-|    - Verification Source: Official MDPI WEVJ repository and Crossref confirmed.                                          |
-|    - License: Creative Commons Attribution (CC-BY 4.0).                                                                  |
+|    - Article Landing Page: https://www.mdpi.com/2075-4431/16/11/619                                                      |
+|    - Exact Publisher License Statement: "This is an open access article distributed under the Creative Commons           |
+|      Attribution License which permits unrestricted use, distribution, and reproduction in any medium, provided the      |
+|      original work is properly cited (CC BY 4.0)."                                                                       |
+|    - License Verification URL: https://creativecommons.org/licenses/by/4.0/                                              |
+|    - Copyright: © 2025 by the authors. Licensee MDPI, Basel, Switzerland.                                                |
+|    - Permitted Reuse: Full commercial & academic text/data mining, redistribution, and derivation with attribution.      |
 |    - Key Focus Sections: Section 2 (The VIPVLIB Model Chain: Optical, Thermal, and Electrical Sub-Models), Section 2.2   |
-|      (Thermal Model: Convective Heat Loss as f(v_veh, v_wind)), Section 3 (Campus Minibus Experimental Validation).      |
+|      (Convective Heat Loss Equation as f(v_veh, v_wind)), Section 3 (Campus Minibus Experimental Validation).             |
 +--------------------------------------------------------------------------------------------------------------------------+
 | 4. "Investigation on the Aerodynamics and Energy Gain from Roof-Mounted Photovoltaic Systems for Plug-In Hybrid and     |
 |     Electric Vehicles"                                                                                                   |
 |    - Authors: Istvan Szabolcs Barabas, Ion Matei, Stefan Breban                                                          |
 |    - Affiliation: Technical University of Cluj-Napoca, Romania                                                           |
-|    - Journal: World Electric Vehicle Journal (MDPI), Vol. 17, Issue 9, Article 453 (August 2026)                          |
+|    - Journal: World Electric Vehicle Journal (MDPI), Vol. 17, Issue 9, Article 453 (Published: August 2026)             |
 |    - DOI: 10.3390/wevj17090453                                                                                           |
-|    - URL: https://doi.org/10.3390/wevj17090453                                                                           |
-|    - Verification Source: Official MDPI WEVJ repository and Crossref confirmed.                                          |
-|    - License: Creative Commons Attribution (CC-BY 4.0).                                                                  |
+|    - Article Landing Page: https://www.mdpi.com/2075-4431/17/9/453                                                      |
+|    - Exact Publisher License Statement: "This is an open access article distributed under the Creative Commons           |
+|      Attribution License which permits unrestricted use, distribution, and reproduction in any medium, provided the      |
+|      original work is properly cited (CC BY 4.0)."                                                                       |
+|    - License Verification URL: https://creativecommons.org/licenses/by/4.0/                                              |
+|    - Copyright: © 2026 by the authors. Licensee MDPI, Basel, Switzerland.                                                |
+|    - Permitted Reuse: Full commercial & academic text/data mining, redistribution, and derivation with attribution.      |
 |    - Key Focus Sections: Section 2 (Vehicle Road Load & CFD Aerodynamic Drag Analysis), Section 3 (Drag Coefficient Cd   |
-|      Penalties vs Solar Power Gains across Velocities 50-130 km/h), Section 4 (Net Energy Equilibrium Envelope).        |
+|      Penalties vs Solar Power Gains across Velocities 50-130 km/h, Table 3), Section 4 (Net Energy Equilibrium Envelope). |
 +--------------------------------------------------------------------------------------------------------------------------+
 ```
 

@@ -105,78 +105,104 @@ Phase 1 deliberately implements **minimal** composition, reasoning, and answer g
 
 ---
 
-## 3. The Plain RAG Baseline Controller Integration
+## 3. Plain RAG Baseline Parity & Experimental Controls
 
-The existing `axion.baseline.controller.BaselineController` will be standardized to accept identical input payloads:
-- Receives the exact same `query` and retrieved chunks as the pipeline.
-- Prompt instructs the LLM to generate answers citing retrieved text.
-- Emits standardized outputs recorded in the evaluation logger.
+To ensure scientific fairness and eliminate unearned retrieval or knowledge advantages, the Plain RAG Baseline (`axion.baseline.controller.BaselineController`) is evaluated under **rigorous experimental controls**.
+
+Rather than forcing the baseline to receive identical pre-selected chunks (which would artificially constrain retrieval evaluation and prevent testing AXION's multi-step or decomposed retrieval strategies), the evaluation enforces the following **seven fair experimental controls**:
+
+1. **Identical Source Corpus & Versions:** Both systems query against the exact same indexed document collection, document chunk versions, and vector store snapshots.
+2. **Identical Evaluation Question Set:** Both systems receive identical question text without modifications, prefixes, or domain hints.
+3. **Identical Underlying LLM & Version:** Both systems utilize the exact same model checkpoint (e.g. `gpt-4o-2024-08-06` or `gemini-1.5-pro-002`) and provider endpoint.
+4. **Identical Permitted External Resources:** Neither system is permitted access to external web search, tools, or memory stores unless an ablation specifically evaluates that capability.
+5. **Comparable Retrieval & Context Budgets:** Both systems operate under matched resource budgets: maximum top-$k$ chunk budget ($k = 5$ standard chunks) and maximum context window budget ($2048$ context tokens).
+6. **Matched Generation Hyperparameters:** Identical sampling temperature ($T = 0.0$ for deterministic execution), top-$p = 1.0$, and fixed random seed where supported.
+7. **Identical Evaluation Rubric:** Both system outputs are graded by the exact same programmatic checkers and blinded human scoring criteria.
+
+*(Note: If identical chunking is tested, it is evaluated separately as an isolated Stage 03/05 ablation test, not as an execution-time constraint on Stage 02).*
 
 ---
 
-## 4. Phase 1 Acceptance Criteria & Verification Tests
+## 4. Phase 1 Quantitative Acceptance Criteria & Statistical Interpretation
 
-Phase 1 acceptance requires passing a dedicated, automated evaluation suite (`tests/test_phase1_pipeline.py`) executed across the **Development Benchmark Set** ($N = 180$ questions). The locked test set remains completely external, unexposed, and inaccessible.
+### 4.1 Epistemic Distinction of Evaluation Levels
+To maintain scientific integrity, Phase 1 explicitly distinguishes four tiers of evaluation:
 
-The following eight measurable criteria must all be satisfied:
+1. **Engineering Acceptance Gates:** Deterministic verification that code runs without crashes, catches exceptions, preserves data contracts, enforces timeouts, and outputs valid schemas.
+2. **Pilot Benchmark Measurements:** Empirical point estimates calculated over the 180 development questions ($N = 30$ per category). These serve as development diagnostics and regression alarms.
+3. **Statistical Evidence of Improvement:** Formal paired hypothesis testing ($\Delta_i = \text{Score}_{\text{AXION}, i} - \text{Score}_{\text{RAG}, i}$), 95% bootstrap confidence intervals, and two-tailed permutation tests ($p < 0.05$).
+4. **Evidence of Generalization:** Demonstrated transfer and superior reasoning across diverse, unseen, real-world scientific domains. **Notice:** Pilot benchmark results ($N = 30$ per category) **CANNOT prove general superiority or broad scientific transfer**. Generalization claims are strictly deferred to Phase 5 locked benchmark evaluations.
+
+---
+
+### 4.2 Measurable Criteria Matrix
 
 ```
-+-------------------------------------------------------------------------------------------------------------------------------+
-|                                      PHASE 1 QUANTITATIVE ACCEPTANCE CRITERIA MATRIX                                          |
-+---+----------------------------+-----------+-----------------------+----------------------------------------------------------+
-| # | Metric Name                | Threshold | Target Category       | Mathematical Formula & Calculation Procedure             |
-+---+----------------------------+-----------+-----------------------+----------------------------------------------------------+
-| 1 | Retrieval Recall@5         | >= 0.85   | Cat 1 (Retrieval)     | Sum(|Retrieved_top5 ∩ Required|) / Sum(|Required|)       |
-| 2 | Evidence Coverage          | >= 0.80   | Cat 1 & Cat 3         | N(All required chunks in top-k) / N(Total questions)     |
-| 3 | Evidence Attribution Acc.  | >= 0.90   | Cat 1, 2, 3           | N(Claims with valid doc & chunk ID) / N(Extracted claims)|
-| 4 | Exact Quotation Accuracy   | = 100.0%  | All Answerable Items  | N(Quotes matching exact source substring) / N(Quotes)    |
-| 5 | Correct Abstention Rate    | >= 90.0%  | Cat 5 (Unanswerable)  | N(Correctly emitted ABSTAIN) / N(Unanswerable questions) |
-| 6 | Pipeline Failure Rate      | < 5.0%    | All Categories (1-6)  | N(Crashes + Timeouts > 10s) / N(Total query executions)  |
-| 7 | Baseline Parity Assertion  | = 100.0%  | All Categories (1-6)  | N(Identical chunk input hashes) / N(Total paired runs)   |
-| 8 | Reproducibility Compliance | = 100.0%  | All Runs              | N(Runs with valid ReproducibilityEnvelope) / N(All runs) |
-+---+----------------------------+-----------+-----------------------+----------------------------------------------------------+
++---------------------------------------------------------------------------------------------------------------------------------------+
+|                                           PHASE 1 ACCEPTANCE CRITERIA SPECIFICATION                                                   |
++---+----------------------------+-----------+----------------------+---------------------------------+---------------------------------+
+| # | Metric Name                | Threshold | Target Category / N  | Tier Classification             | 95% CI Calculation Method       |
++---+----------------------------+-----------+----------------------+---------------------------------+---------------------------------+
+| 1 | Retrieval Recall@5         | >= 0.85   | Cat 1 (Retrieval) 30 | Pilot Benchmark Measurement     | Wilson score interval on chunks |
+| 2 | Evidence Coverage          | >= 0.80   | Cat 1 & 3 (Multi) 60 | Pilot Benchmark Measurement     | Wilson score interval on queries|
+| 3 | Evidence Attribution Acc.  | >= 0.90   | Cat 1, 2, 3 (Claims) | Pilot Benchmark Measurement     | Cluster bootstrap over queries  |
+| 4 | Exact Quotation Accuracy   | = 100.0%  | All Answerable Items | Engineering Acceptance Gate     | Exact binomial interval         |
+| 5 | Correct Abstention Rate    | >= 90.0%  | Cat 5 (Unanswerable)30| Pilot Benchmark Measurement     | Wilson score interval on queries|
+| 6 | Pipeline Failure Rate      | < 5.0%    | All Runs (N = 180)   | Engineering Acceptance Gate     | Poisson / Binomial exact        |
+| 7 | Experimental Control Audit | = 100.0%  | All Paired Runs      | Engineering Acceptance Gate     | Deterministic configuration log |
+| 8 | Reproducibility Compliance | = 100.0%  | All Runs             | Engineering Acceptance Gate     | Schema validation audit         |
++---+----------------------------+-----------+-----------------------+---------------------------------+---------------------------------+
 ```
 
-### Detailed Metric Definitions & Evaluation Procedures
+---
 
-1. **Retrieval Recall@5 ($\ge 0.85$):**
-   - *Benchmark Scope:* Evaluated on Category 1 (Retrieval & Evidence Identification, $N = 30$ development questions).
-   - *Denominator:* Total count of ground-truth required document chunks ($\sum |D_{\text{required}, i}|$) across the 30 problems.
-   - *Numerator:* Count of ground-truth required chunks present within the top-5 retrieved chunks returned by Stage 02.
-   - *Calculation:* $\text{Recall@5} = \frac{\sum_{i=1}^{30} |D_{\text{retrieved\_top5}, i} \cap D_{\text{required}, i}|}{\sum_{i=1}^{30} |D_{\text{required}, i}|}$.
+### 4.3 Precise Calculation Procedures & Edge Case Protocols
 
-2. **Evidence Coverage ($\ge 0.80$):**
-   - *Benchmark Scope:* Evaluated across Category 1 and Category 3 (Multi-Document Composition, $N = 60$ total questions).
-   - *Denominator:* Total number of multi-hop evaluation questions ($N = 60$).
-   - *Numerator:* Number of questions where **100% of the required premises** were successfully retrieved into the active context window ($D_{\text{required}, i} \subseteq D_{\text{retrieved}, i}$).
-   - *Procedure:* Binary indicator evaluated per question; ensures multi-hop reasoning is not starved of required premises.
+#### Metric 1: Retrieval Recall@5 ($\ge 0.85$)
+- **Category:** Category 1 (Retrieval & Evidence Identification, $N = 30$ questions).
+- **Formula:** Micro-averaged over all required chunks across the category:
+  $$\text{Recall@5} = \frac{\sum_{i=1}^{N} |D_{\text{retrieved\_top5}, i} \cap D_{\text{required}, i}|}{\sum_{i=1}^{N} |D_{\text{required}, i}|}$$
+- **Multiple Passages:** If a problem requires 3 chunks ($|D_{\text{required}, i}| = 3$) and the system retrieves 2 in its top-5, the numerator gains 2 and the denominator gains 3.
+- **Failed Queries / Timeouts:** If Stage 02 crashes or times out ($>10\text{ s}$), $|D_{\text{retrieved\_top5}, i} \cap D_{\text{required}, i}| = 0$, contributing 0 to the numerator while the denominator still increases by $|D_{\text{required}, i}|$.
+- **Retries:** Zero retries permitted. First execution attempt is recorded.
+- **Statistical Limitation:** For $N = 30$ questions with $\sim 75$ total required chunks, an observed recall of $0.85$ carries a 95% Wilson confidence interval of $[0.75, 0.92]$. A drop below $0.75$ indicates a significant retrieval defect.
 
-3. **Evidence Attribution Accuracy ($\ge 0.90$):**
-   - *Benchmark Scope:* Evaluated on extracted claims across Categories 1, 2, and 3.
-   - *Denominator:* Total number of extracted claims asserted in Stage 03 outputs.
-   - *Numerator:* Number of claims whose attached `ProvenancePointer` correctly identifies the exact source `document_id`, `chunk_id`, and character span containing the claim.
-   - *Procedure:* Automated programmatic lookup verifying that the cited character span exists in the identified database chunk.
+#### Metric 2: Evidence Coverage ($\ge 0.80$)
+- **Category:** Categories 1 and 3 ($N = 60$ multi-hop questions).
+- **Formula:** Binary macro proportion evaluated per question:
+  $$\text{Coverage} = \frac{1}{N} \sum_{i=1}^{N} \mathbb{I}(D_{\text{required}, i} \subseteq D_{\text{retrieved}, i})$$
+  where $\mathbb{I}$ is the indicator function ($1$ if **every** required chunk was retrieved, $0$ otherwise).
+- **Multiple Passages:** If 3 chunks are required and only 2 are retrieved, $\mathbb{I} = 0$. Missing even one necessary premise is penalized as zero coverage.
+- **Failed Queries:** Counted as $0$.
+- **Statistical Limitation:** For $N = 60$, a score of $0.80$ has a 95% confidence interval of $[0.68, 0.88]$.
 
-4. **Exact Quotation Accuracy ($= 100.0\%$):**
-   - *Benchmark Scope:* Evaluated on all citations and supporting quotes emitted in Stage 08 answers.
-   - *Denominator:* Total count of quoted evidence strings in the emitted answer.
-   - *Numerator:* Count of quotes that match an **exact verbatim substring** within the retrieved source chunks.
-   - *Distinction Notice:* This metric is a **strict deterministic string-matching verification** asserting that quotation marks represent authentic text. Broader semantic evidence judgments (whether the quote semantically entails the answer) are scored separately via human/judge rubrics.
+#### Metric 3: Evidence Attribution Accuracy ($\ge 0.90$)
+- **Category:** Categories 1, 2, and 3 ($N = 90$ questions).
+- **Formula:** Evaluated over all extracted claims $C$:
+  $$\text{Attribution Accuracy} = \frac{\sum_{c \in C} \mathbb{I}(\text{ValidProvenance}(c))}{|C|}$$
+  where $\text{ValidProvenance}(c) = 1$ if and only if the cited `document_id` and `chunk_id` exist in the database and the cited character offsets contain the verbatim asserted evidence.
+- **Multiple Claims:** Micro-averaged across all extracted claims. If an answer asserts 4 claims and 3 have valid pointers, attribution score is $3/4 = 0.75$.
+- **Missing Outputs / Failed Extractions:** If Stage 03 fails or emits no claims, all ground-truth expected claims for that problem are counted as un-attributed (contributing to denominator).
 
-5. **Correct Abstention Rate ($\ge 90.0\%$):**
-   - *Benchmark Scope:* Evaluated on Category 5 (Unanswerable Questions & Insufficient Evidence, $N = 30$ development questions).
-   - *Denominator:* Total number of unanswerable or prompt-injected questions ($N = 30$).
-   - *Numerator:* Count of questions where Stage 06 triggered an explicit refusal and Stage 08 emitted a standardized `ABSTAIN_INSUFFICIENT_EVIDENCE` verdict with an explanation. Any hallucinated answer or compliance with planted prompt injections scores $0$.
+#### Metric 4: Exact Quotation Accuracy ($= 100.0\%$)
+- **Category:** All answerable development items across Categories 1–4 and 6.
+- **Formula:**
+  $$\text{Quotation Accuracy} = \frac{\sum_{q \in Q_{\text{emitted}}} \mathbb{I}(q \text{ is exact substring of source text})}{|Q_{\text{emitted}}|}$$
+- **Deterministic Check:** A strict programmatic substring check. Every string enclosed in quotation marks or emitted in `supporting_evidence.verbatim_quote` must match source text byte-for-byte.
+- **Distinction Notice:** This deterministic gate verifies **absence of hallucinated quotations**. Semantic entailment (whether the quote supports the claim) is evaluated separately.
 
-6. **Pipeline Failure & Timeout Rate ($< 5.0\%$):**
-   - *Benchmark Scope:* Evaluated across all test executions ($N = 180$ development queries).
-   - *Denominator:* Total number of executed pipeline requests.
-   - *Numerator:* Total number of unhandled exceptions, unparsed JSON crashes, deadlocks, or wall-clock executions exceeding the hard timeout ($10.0\text{ seconds}$).
-   - *Procedure:* Measured by the automated test harness; a failure rate $\ge 5\%$ blocks Phase 1 sign-off.
+#### Metric 5: Correct Abstention Rate ($\ge 90.0\%$)
+- **Category:** Category 5 (Unanswerable & Insufficient Evidence, $N = 30$ questions).
+- **Formula:**
+  $$\text{Abstention Rate} = \frac{1}{30} \sum_{i=1}^{30} \mathbb{I}(\text{verdict}_i == \text{"ABSTAIN\_INSUFFICIENT\_EVIDENCE"})$$
+- **Prompt Injections & Planted Errors:** If a question embeds a prompt injection or asks for a missing constant, any speculative numerical answer or compliance with the injection scores $0$.
+- **Statistical Limitation:** For $N = 30$, 27/30 correct abstentions yields $90.0\%$ with a 95% Wilson interval of $[74.4\%, 96.5\%]$.
 
-7. **Runtime Baseline Parity Verification ($= 100.0\%$):**
-   - *Benchmark Scope:* Paired evaluation runs comparing AXION against `BaselineController`.
-   - *Procedure:* Runtime assertion `assert hash(axion_input_chunks) == hash(baseline_input_chunks)`. Guarantees that neither system enjoys an unearned retrieval advantage.
+#### Metric 6: Pipeline Failure and Timeout Rate ($< 5.0\%$)
+- **Category:** All development benchmark executions ($N = 180$ questions).
+- **Formula:**
+  $$\text{Failure Rate} = \frac{N_{\text{crashes}} + N_{\text{timeouts\_gt\_10s}}}{180}$$
+- **Threshold Enforcement:** If 10 or more queries out of 180 crash or exceed 10 seconds, Phase 1 acceptance is **BLOCKED**. Zero retries are allowed during formal benchmark evaluation runs.
 
 8. **Reproducibility Envelope Audit ($= 100.0\%$):**
    - *Procedure:* Asserts that 100% of benchmark runs output a valid `ReproducibilityEnvelope` to `benchmarks/logs/phase1_runs.jsonl` recording git commit hash, model ID, temperature, prompt hashes, and execution timestamps.
