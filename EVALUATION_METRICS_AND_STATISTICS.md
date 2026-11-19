@@ -79,8 +79,11 @@ Let $C_{\text{true}, i}$ be the set of annotated atomic claims and governing con
   $$R_{\text{claim}} = \frac{\sum_{i=1}^{N} |C_{\text{ext}, i} \cap C_{\text{true}, i}|}{\sum_{i=1}^{N} |C_{\text{true}, i}|}$$
 - **Evidence Attribution Accuracy ($A_{\text{attr}}$):**
   Micro-averaged fraction of extracted claims with a valid `ProvenancePointer`:
-  $$A_{\text{attr}} = \frac{\sum_{c \in C_{\text{ext}}} \mathbb{I}(\text{ValidProvenance}(c))}{|C_{\text{ext}}|}$$
-  $\text{ValidProvenance}(c) = 1$ if and only if the cited `document_id` and `chunk_id` exist in the database and the cited character offsets contain the verbatim asserted evidence. If Stage 03 emits no claims or fails, all ground-truth expected claims are scored as un-attributed.
+  $$A_{\text{attr}} = \frac{\sum_{i=1}^{N} \sum_{c \in C_{\text{ext}, i}} \mathbb{I}(\text{ValidProvenance}(c))}{\sum_{i=1}^{N} D_{\text{attr}, i}}$$
+  where the per-query denominator $D_{\text{attr}, i}$ is defined as:
+  $$D_{\text{attr}, i} = \begin{cases} |C_{\text{ext}, i}| & \text{if } |C_{\text{ext}, i}| > 0 \\ |C_{\text{true}, i}| & \text{if } |C_{\text{ext}, i}| = 0 \text{ (pipeline failure, timeout, or empty emission on answerable query)} \end{cases}$$
+  $\text{ValidProvenance}(c) = 1$ if and only if the cited `document_id` and `chunk_id` exist in the database and the cited character offsets contain the verbatim asserted evidence.
+  - *Missing-Claim Handling:* If Stage 03 emits zero claims on an answerable query ($|C_{\text{ext}, i}| = 0$), all $|C_{\text{true}, i}|$ expected claims are scored as un-attributed (contributing $0$ to numerator and $|C_{\text{true}, i}|$ to denominator), preventing zero-division or evasion. Partial omissions when $|C_{\text{ext}, i}| > 0$ are governed separately by Claim Extraction Recall ($R_{\text{claim}}$), strictly decoupling extraction recall from provenance precision.
 
 ### 3.3 Composition Metrics
 

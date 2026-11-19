@@ -178,11 +178,13 @@ To maintain scientific integrity, Phase 1 explicitly distinguishes four tiers of
 
 #### Metric 3: Evidence Attribution Accuracy ($\ge 0.90$)
 - **Category:** Categories 1, 2, and 3 ($N = 90$ questions).
-- **Formula:** Evaluated over all extracted claims $C$:
-  $$\text{Attribution Accuracy} = \frac{\sum_{c \in C} \mathbb{I}(\text{ValidProvenance}(c))}{|C|}$$
+- **Formula:** Evaluated over all queries $i \in \{1, \dots, N\}$:
+  $$\text{Attribution Accuracy} = \frac{\sum_{i=1}^{N} \sum_{c \in C_{\text{ext}, i}} \mathbb{I}(\text{ValidProvenance}(c))}{\sum_{i=1}^{N} D_{\text{attr}, i}}$$
   where $\text{ValidProvenance}(c) = 1$ if and only if the cited `document_id` and `chunk_id` exist in the database and the cited character offsets contain the verbatim asserted evidence.
-- **Multiple Claims:** Micro-averaged across all extracted claims. If an answer asserts 4 claims and 3 have valid pointers, attribution score is $3/4 = 0.75$.
-- **Missing Outputs / Failed Extractions:** If Stage 03 fails or emits no claims, all ground-truth expected claims for that problem are counted as un-attributed (contributing to denominator).
+- **Denominator Definition:**
+  $$D_{\text{attr}, i} = \begin{cases} |C_{\text{ext}, i}| & \text{if } |C_{\text{ext}, i}| > 0 \\ |C_{\text{true}, i}| & \text{if } |C_{\text{ext}, i}| = 0 \text{ (zero emission, pipeline failure, or timeout on answerable query)} \end{cases}$$
+- **Multiple Claims:** Micro-averaged across all extracted claims. If an answer asserts 4 claims and 3 have valid pointers, query contribution is $3/4 = 0.75$.
+- **Missing-Claim Handling:** If Stage 03 fails or emits zero claims on an answerable question, all ground-truth expected claims $|C_{\text{true}, i}|$ are counted as un-attributed (contributing $0$ to numerator and $|C_{\text{true}, i}|$ to denominator), preventing artificial evasion or divide-by-zero. Partial omission of required claims when $|C_{\text{ext}, i}| > 0$ is governed by Claim Extraction Recall ($R_{\text{claim}}$), preventing confounding between extraction recall and provenance precision.
 
 #### Metric 4: Exact Quotation Accuracy ($= 100.0\%$)
 - **Category:** All answerable development items across Categories 1–4 and 6.
