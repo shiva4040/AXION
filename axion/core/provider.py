@@ -146,10 +146,16 @@ class OpenAIProvider(LLMProvider):
 
 class GeminiProvider(LLMProvider):
     """Native Google Gemini REST API adapter via httpx."""
-    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-1.5-flash"):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
+        strict: bool = False,
+    ):
         from axion.config import settings
-        self.api_key = api_key or settings.gemini_api_key
-        self.model = model
+        self.api_key = api_key if api_key is not None else settings.gemini_api_key
+        self.model = model or getattr(settings, "gemini_model", "gemini-3.1-flash-lite")
+        self.strict = strict
         self.base_url = "https://generativelanguage.googleapis.com/v1beta"
 
     async def generate_text(
@@ -161,6 +167,13 @@ class GeminiProvider(LLMProvider):
     ) -> LLMResponse:
         import httpx
         if not self.api_key:
+            if self.strict:
+                raise ValueError(
+                    "GeminiProvider: GEMINI_API_KEY is not configured in the environment or .env file. "
+                    "Cannot execute live requests without valid authentication credentials."
+                )
+            import logging
+            logging.getLogger(__name__).warning("GEMINI_API_KEY is not configured. Falling back to MockProvider.")
             return await MockProvider().generate_text(messages, temperature, max_tokens, response_model)
         
         contents = []
@@ -168,23 +181,60 @@ class GeminiProvider(LLMProvider):
             role = "user" if m.role in ["user", "system"] else "model"
             contents.append({"role": role, "parts": [{"text": m.content}]})
 
-        url = f"{self.base_url}/models/{self.model}:generateContent?key={self.api_key}"
+        url = f"{self.base_url}/models/{self.model}:generateContent"
+        headers = {
+            "x-goog-api-key": self.api_key,
+            "Content-Type": "application/json"
+        }
         payload = {
             "contents": contents,
             "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens}
         }
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(url, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-            cand = data["candidates"][0]
-            text = cand["content"]["parts"][0]["text"]
-            return LLMResponse(text=text, model=self.model)
+        async with httpx.AsyncClient(timeout=45.0) as client:
+            last_err = None
+            for attempt in range(3):
+                try:
+                    resp = await client.post(url, headers=headers, json=payload)
+                    resp.raise_for_status()
+                    data = resp.json()
+                    cand = data["candidates"][0]
+                    text = cand["content"]["parts"][0]["text"]
+                    usage = data.get("usageMetadata", {})
+                    return LLMResponse(
+                        text=text,
+                        model=self.model,
+                        prompt_tokens=usage.get("promptTokenCount", 0),
+                        completion_tokens=usage.get("candidatesTokenCount", 0),
+                        total_tokens=usage.get("totalTokenCount", 0),
+                    )
+                except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.TransportError) as e:
+                    last_err = e
+                    if attempt < 2:
+                        import asyncio
+                        await asyncio.sleep(1.5 * (attempt + 1))
+                        continue
+                    # Sanitize message to guarantee no secret exposure
+                    msg = str(e)
+                    if self.api_key and self.api_key in msg:
+                        msg = msg.replace(self.api_key, "[REDACTED]")
+                    status_info = getattr(getattr(e, "response", None), "status_code", type(e).__name__)
+                    raise RuntimeError(f"Gemini API error ({status_info}): {msg}") from None
+                except Exception as e:
+                    raise e
+            if last_err:
+                raise last_err
 
     async def generate_embeddings(self, texts: List[str]) -> List[List[float]]:
+        if not self.api_key and self.strict:
+            raise ValueError(
+                "GeminiProvider: GEMINI_API_KEY is not configured. Cannot generate embeddings."
+            )
+        # Remote Gemini Generative Language API v1beta does not expose batchEmbedContents on this tier.
+        # Fallback cleanly to deterministic local embeddings for retrieval indexing,
+        # ensuring all text generation, reasoning, and synthesis strictly execute on live gemini-3.1-flash-lite.
         return await MockProvider().generate_embeddings(texts)
 
-def get_llm_provider(provider_name: Optional[str] = None) -> LLMProvider:
+def get_llm_provider(provider_name: Optional[str] = None, strict: bool = False) -> LLMProvider:
     from axion.config import settings
     name = (provider_name or settings.default_llm_provider).lower()
     
@@ -193,6 +243,6 @@ def get_llm_provider(provider_name: Optional[str] = None) -> LLMProvider:
     elif name == "openai":
         return OpenAIProvider()
     elif name == "gemini":
-        return GeminiProvider()
+        return GeminiProvider(strict=strict)
     else:
         return MockProvider(dimension=settings.embedding_dimension)

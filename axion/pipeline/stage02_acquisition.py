@@ -243,6 +243,14 @@ class KnowledgeAcquisitionCoordinator:
             except Exception as e:
                 logger.warning("External acquisition lookup failed: %s", e)
 
+        # 5. Look up accumulated scientific knowledge items
+        accumulated_items: List[Dict[str, Any]] = []
+        if self.acquisition_engine and hasattr(self.acquisition_engine, "accumulator"):
+            try:
+                accumulated_items = await self.acquisition_engine.get_accumulated_items(session=self.session)
+            except Exception as e:
+                logger.debug("Accumulator item query note: %s", e)
+
         latency_ms = (time.time() - t0) * 1000.0
 
         return AcquisitionPayload(
@@ -255,6 +263,8 @@ class KnowledgeAcquisitionCoordinator:
             metadata={
                 "top_k": top_k,
                 "min_similarity": min_similarity,
-                "enable_external": enable_external
+                "enable_external": enable_external,
+                "accumulated_knowledge_count": len(accumulated_items),
+                "accumulated_knowledge": accumulated_items[:10]
             }
         )

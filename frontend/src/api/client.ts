@@ -12,9 +12,9 @@ export async function askQuestion(query: string, document_id?: string): Promise<
   if (!res.ok) {
     const errorText = await res.text();
     if (res.status === 502 || res.status === 504) {
-      throw new Error(`Backend server unreachable (${res.status}). Please ensure the AXION backend server is running at http://127.0.0.1:8000.`);
+      throw new Error(`Backend server unreachable (${res.status}). Please ensure the AXION backend is running on http://127.0.0.1:8000 (execute: .\\.venv\\Scripts\\python.exe -m axion.api.main).`);
     }
-    throw new Error(`Investigation failed (${res.status}): ${errorText || res.statusText}`);
+    throw new Error(`Server returned HTTP ${res.status}: ${errorText || res.statusText}`);
   }
   return res.json();
 }
@@ -134,6 +134,50 @@ export async function invalidateFinding(finding_id: string, reason: string) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ reason }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+// Stage 02 Knowledge Source Dashboard API methods
+export async function getAcquisitionSources() {
+  const res = await fetch(`${API_BASE}/acquisition/sources`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getAcquisitionStatistics() {
+  const res = await fetch(`${API_BASE}/acquisition/statistics`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function getResearchCollection() {
+  const res = await fetch(`${API_BASE}/acquisition/collection`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getKnowledgeAccumulation(domain?: string, item_type?: string) {
+  const params = new URLSearchParams();
+  if (domain) params.append('domain', domain);
+  if (item_type) params.append('item_type', item_type);
+  const res = await fetch(`${API_BASE}/acquisition/accumulation?${params.toString()}`);
+  if (!res.ok) return { items: [], bridges: [] };
+  return res.json();
+}
+
+export async function getAcquisitionHistory() {
+  const res = await fetch(`${API_BASE}/acquisition/history`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function searchAcquisition(query: string, sources?: string[]) {
+  const res = await fetch(`${API_BASE}/acquisition/search`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, sources, max_results_per_source: 5 }),
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();

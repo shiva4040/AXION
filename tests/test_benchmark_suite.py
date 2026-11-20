@@ -147,3 +147,44 @@ def test_phase1_metrics_recalculation_fidelity():
     assert fail["passed"] is True and fail["score"] == 0.0
     assert repr_c["passed"] is True and repr_c["score"] == 1.0
 
+
+def test_real_world_scientific_dataset_integrity():
+    """Validates the 4 authentic real-world peer-reviewed publications and 12 evaluation questions."""
+    import json
+    from pathlib import Path
+
+    root_dir = Path(__file__).resolve().parent.parent
+    d_path = root_dir / "benchmarks" / "real_world_documents.json"
+    q_path = root_dir / "benchmarks" / "real_world_questions.json"
+
+    assert d_path.exists()
+    assert q_path.exists()
+
+    with open(d_path, "r", encoding="utf-8") as f:
+        docs = json.load(f)
+    with open(q_path, "r", encoding="utf-8") as f:
+        questions = json.load(f)
+
+    assert len(docs) == 4, f"Expected 4 real-world papers, got {len(docs)}"
+    assert len(questions) == 12, f"Expected 12 questions, got {len(questions)}"
+
+    # Verify DOIs
+    expected_dois = [
+        "10.3390/en18143650",
+        "10.3390/wevj16110610",
+        "10.3390/wevj16110619",
+        "10.3390/wevj17090453",
+    ]
+    actual_dois = [d["doi"] for d in docs]
+    assert sorted(actual_dois) == sorted(expected_dois)
+
+    # Verify that all quotes exist in doc text
+    doc_map = {d["document_id"]: d["text_content"] for d in docs}
+    for q in questions:
+        for ev in q.get("expected_claims", []):
+            s_doc = ev.get("source_doc_id")
+            quote = ev.get("verbatim_quote", "")
+            if s_doc and s_doc in doc_map:
+                assert quote in doc_map[s_doc], f"Quote not found for {q['problem_id']}"
+
+

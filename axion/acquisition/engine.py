@@ -20,6 +20,15 @@ from axion.acquisition.connectors.huggingface import HuggingFaceConnector
 from axion.acquisition.connectors.kaggle import KaggleConnector
 from axion.acquisition.connectors.web_search import WebSearchConnector
 from axion.acquisition.connectors.local_upload import LocalUploadConnector
+from axion.acquisition.connectors.google_scholar import GoogleScholarConnector
+from axion.acquisition.connectors.nasa_ads import NASAADSConnector
+from axion.acquisition.connectors.inspire_hep import InspireHEPConnector
+from axion.acquisition.connectors.web_of_science import WebOfScienceConnector
+from axion.acquisition.connectors.inspec import InspecConnector
+from axion.acquisition.connectors.ajp import AmericanJournalOfPhysicsConnector
+from axion.acquisition.connectors.proquest import ProQuestConnector
+from axion.acquisition.connectors.smithsonian import SmithsonianConnector
+from axion.acquisition.accumulation import KnowledgeAccumulator
 from axion.ingestion.source_manager import SourceManager
 from axion.knowledge_graph.extractor import KnowledgeGraphExtractor
 from axion.knowledge_graph.graph import KnowledgeGraphStore
@@ -50,7 +59,7 @@ class InformationAcquisitionEngine:
         if connectors is not None:
             self.connectors: Dict[str, BaseSourceConnector] = {c.source_name: c for c in connectors}
         else:
-            # Register full default suite of 8 connectors
+            # Register full default suite of 16 scholarly connectors
             default_connectors: List[BaseSourceConnector] = [
                 ArxivConnector(),
                 CrossrefConnector(),
@@ -59,12 +68,21 @@ class InformationAcquisitionEngine:
                 HuggingFaceConnector(),
                 KaggleConnector(),
                 WebSearchConnector(),
-                LocalUploadConnector(session=db_session)
+                LocalUploadConnector(session=db_session),
+                GoogleScholarConnector(),
+                NASAADSConnector(),
+                InspireHEPConnector(),
+                WebOfScienceConnector(),
+                InspecConnector(),
+                AmericanJournalOfPhysicsConnector(),
+                ProQuestConnector(),
+                SmithsonianConnector(),
             ]
             self.connectors = {c.source_name: c for c in default_connectors}
 
         self._search_history: List[SearchResponse] = []
         self._acquired_documents_registry: Dict[str, SourceDocument] = {}
+        self.accumulator = KnowledgeAccumulator(session=db_session)
 
     def get_connector(self, name: str) -> Optional[BaseSourceConnector]:
         return self.connectors.get(name)
@@ -132,18 +150,30 @@ class InformationAcquisitionEngine:
         selected_names: Set[str] = set()
 
         # Domain heuristics
+        if any(w in q_lower for w in ["astro", "galaxy", "planet", "cosmo", "star", "telescope", "solar", "gravitat"]):
+            selected_names.update(["nasa_ads", "arxiv", "inspire_hep", "smithsonian", "crossref"])
+
+        if any(w in q_lower for w in ["higgs", "cern", "hadron", "quark", "lepton", "boson", "neutrino", "particle physics", "quantum field", "qft"]):
+            selected_names.update(["inspire_hep", "arxiv", "ajp", "crossref"])
+
+        if any(w in q_lower for w in ["physics", "quantum", "equation", "formula", "relativity", "mechanics", "thermodynamics", "optics", "kinematics", "lift", "drag"]):
+            selected_names.update(["ajp", "arxiv", "inspec", "crossref", "openalex"])
+
+        if any(w in q_lower for w in ["circuit", "motor", "electrical", "semiconductor", "voltage", "current", "transistor", "signal", "antenna", "robotics"]):
+            selected_names.update(["inspec", "arxiv", "crossref", "openalex"])
+
+        if any(w in q_lower for w in ["dissertation", "thesis", "monograph", "doctoral", "phd"]):
+            selected_names.update(["proquest", "openalex", "crossref"])
+
         if any(w in q_lower for w in ["bio", "cell", "protein", "dna", "gene", "medical", "disease", "photosynthesis", "enzyme", "chloroplast"]):
             selected_names.update(["pubmed", "crossref", "openalex"])
 
         if any(w in q_lower for w in ["dataset", "benchmark", "data", "corpus", "metrics", "training", "evaluation"]):
             selected_names.update(["huggingface", "kaggle"])
 
-        if any(w in q_lower for w in ["physics", "quantum", "equation", "formula", "relativity", "mechanics", "thermodynamics", "circuit", "motor", "lift"]):
-            selected_names.update(["arxiv", "crossref", "openalex"])
-
-        # Default fallback: query broad academic and web sources
+        # Default fallback: query representative academic and scholarly sources
         if not selected_names:
-            selected_names = {"arxiv", "crossref", "openalex", "web_search", "local_upload"}
+            selected_names = {"arxiv", "crossref", "openalex", "google_scholar", "ajp", "web_search", "local_upload"}
 
         # Always include local upload if available
         selected_names.add("local_upload")
@@ -381,6 +411,9 @@ class InformationAcquisitionEngine:
                         nodes_created += res.get("nodes_created", 0)
                         edges_created += res.get("edges_created", 0)
 
+                # Accumulate scientific knowledge items (equations, claims, assumptions, bridges)
+                await self.accumulator.accumulate_document(doc, session=session)
+
             except Exception as e:
                 err_msg = f"Failed to ingest document '{doc.title}': {str(e)}"
                 logger.warning(err_msg)
@@ -404,3 +437,20 @@ class InformationAcquisitionEngine:
     def get_history(self) -> List[SearchResponse]:
         """Returns the search and discovery history."""
         return list(self._search_history)
+
+    async def get_accumulation_statistics(self, session: Optional[AsyncSession] = None) -> Dict[str, Any]:
+        """Retrieves real-time knowledge accumulation and cross-domain statistics."""
+        return await self.accumulator.get_statistics(session=session)
+
+    async def get_accumulated_items(
+        self,
+        domain: Optional[str] = None,
+        item_type: Optional[str] = None,
+        session: Optional[AsyncSession] = None
+    ) -> List[Dict[str, Any]]:
+        """Retrieves accumulated scientific items (equations, claims, assumptions, etc.)."""
+        return await self.accumulator.get_items(domain=domain, item_type=item_type, session=session)
+
+    async def get_cross_domain_connections(self, session: Optional[AsyncSession] = None) -> List[Dict[str, Any]]:
+        """Retrieves cross-domain relational bridges connecting concepts across fields."""
+        return await self.accumulator.get_connections(session=session)

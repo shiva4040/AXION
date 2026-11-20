@@ -13,7 +13,7 @@ import { ValidationWorkspace } from './components/workspaces/ValidationWorkspace
 import { MemoryWorkspace } from './components/workspaces/MemoryWorkspace';
 import { ResearchHistoryWorkspace } from './components/workspaces/ResearchHistoryWorkspace';
 import { askQuestion } from './api/client';
-import { ResearchAnswer, WorkspaceId } from './types';
+import { ResearchAnswer, WorkspaceId, ENGINE_METADATA } from './types';
 import { X } from 'lucide-react';
 import { initGlobalClickSound } from './utils/sound';
 
@@ -25,6 +25,9 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     const cleanup = initGlobalClickSound();
+    if (typeof window !== 'undefined') {
+      (window as any).__AXION_ENGINE__ = ENGINE_METADATA;
+    }
     return cleanup;
   }, []);
 
@@ -35,7 +38,8 @@ export const App: React.FC = () => {
       const result = await askQuestion(query, documentId);
       setCurrentAnswer(result);
     } catch (err: any) {
-      alert(`Investigation failed: ${err.message}`);
+      const msg = err?.message || 'Unknown network error';
+      alert(msg.startsWith('Investigation failed') ? msg : `Investigation failed: ${msg}`);
     } finally {
       setIsLoading(false);
     }

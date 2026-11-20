@@ -1,0 +1,54 @@
+[
+  {
+    "document_id": "doc-rw-vipv-001",
+    "title": "Solar-Powered Electric Vehicles: Comprehensive Review of Technology Advancements, Challenges, and Future Prospects",
+    "authors": ["Oluwapelumi John Oluwalana", "Katarzyna Grzesik"],
+    "domain": "physics:photovoltaics",
+    "publication_year": 2025,
+    "journal": "Energies",
+    "doi": "10.3390/en18143650",
+    "license": "CC BY 4.0",
+    "is_distractor": false,
+    "epistemic_tier": "PEER_REVIEWED",
+    "text_content": "# Solar-Powered Electric Vehicles: Technology Advancements and Challenges\n\n## Abstract\nThis comprehensive review examines the evolution, current state, and future potential of solar-powered electric vehicles (SEVs) and vehicle-integrated photovoltaics (VIPV). We analyze cell technologies, power management systems, and aerodynamic trade-offs.\n\n## Section 2: Photovoltaic Cell Architectures and Efficiency Benchmarks\nIn commercial VIPV applications, cell selection involves balancing conversion efficiency, mechanical flexibility, and manufacturing cost.\nAccording to Table 1, monocrystalline silicon (c-Si) remains the industry benchmark with commercial efficiencies of 20% to 24%, while multi-junction GaAs and perovskite-silicon tandems offer theoretical potential above 28% but face durability challenges under automotive thermal cycling.\nThin-film alternatives such as CIGS offer superior mechanical curvature conformance but exhibit lower commercial efficiency around 14% to 17%.\n\n## Section 3: Daily Solar Energy Yield and Range Extension\nUrban passenger electric vehicles equipped with 1.5 to 2.2 square meters of roof and bonnet solar cells report typical urban range extension ranges from 15 km to 30 km per day under favorable sunny conditions.\n\n## Section 4: Limitations of Standard Testing Conditions (STC)\nStandard stationary PV testing conditions (STC: 1000 W/m^2, 25 deg C, AM 1.5) cannot accurately predict real-world VIPV energy yields.\nDynamic orientations relative to the sun, transient partial shading from buildings and trees, and vehicle movement cause stationary STC ratings to significantly misestimate real VIPV generation."
+  },
+  {
+    "document_id": "doc-rw-vipv-002",
+    "title": "Feasibility Analysis and Optimisation of Vehicle-Integrated Photovoltaic (VIPV) Systems for Sustainable Transportation",
+    "authors": ["Mark Smitheram", "Ehsan Gatavi"],
+    "domain": "engineering:electrical_power",
+    "publication_year": 2025,
+    "journal": "World Electric Vehicle Journal",
+    "doi": "10.3390/wevj16110610",
+    "license": "CC BY 4.0",
+    "is_distractor": false,
+    "epistemic_tier": "PEER_REVIEWED",
+    "text_content": "# Feasibility Analysis and Optimisation of VIPV Systems\n\n## Abstract\nThis paper investigates the feasibility of vehicle-integrated photovoltaic (VIPV) systems for light vehicles by developing and simulating an intelligent energy routing architecture under transient solar exposure.\n\n## Section 2.1: Surface Array Layout\nIn light passenger vehicle prototypes, solar arrays are configured across roof and bonnet panels to maximize usable surface area while respecting structural contours.\n\n## Section 2.3: Power Conditioning and MPPT Topology\nTo resolve severe mismatch losses caused by non-uniform irradiance between the horizontal roof and sloped bonnet, the system uses independent DC-DC buck converters equipped with Maximum Power Point Tracking (MPPT) to handle asymmetric solar irradiance on each surface independently.\n\n## Section 3.1: Energy Routing and Dual-Battery Management\nA Fuzzy Logic Controller (FLC) monitors the state of charge (SoC) of both battery packs and dynamically routes solar power to maximize overall vehicle operational efficiency.\nWhen the high-voltage traction battery is fully charged or under low thermal acceptance, solar energy is diverted to auxiliary 12V storage.\nLight commercial prototypes demonstrate typical urban range extension ranges from 15 km to 30 km per day depending on regional insolation."
+  },
+  {
+    "document_id": "doc-rw-vipv-003",
+    "title": "A Novel Model Chain for Analysing the Performance of Vehicle Integrated Photovoltaic (VIPV) Systems",
+    "authors": ["Hamid Samadi", "Guido Ala", "Miguel Centeno Brito", "Marzia Traverso", "Silvia Licciardi", "Pietro Romano", "Fabio Viola"],
+    "domain": "physics:optics_and_heat_transfer",
+    "publication_year": 2025,
+    "journal": "World Electric Vehicle Journal",
+    "doi": "10.3390/wevj16110619",
+    "license": "CC BY 4.0",
+    "is_distractor": false,
+    "epistemic_tier": "PEER_REVIEWED",
+    "text_content": "# A Novel Model Chain for Analysing the Performance of VIPV Systems\n\n## Abstract\nThis study proposes a comprehensive multi-physics simulation model chain called VIPVLIB for quantifying dynamic vehicle-integrated solar yields in mobile urban environments.\n\n## Section 2: The VIPVLIB Model Chain Architecture\nThe VIPVLIB simulation model chain comprises three distinct models: 1) An Optical Model (calculates dynamic solar irradiance accounting for position and curvature), 2) a Thermal Model (predicts PV cell temperature factoring in vehicle speed and wind cooling), and 3) an Electrical Model (computes I-V characteristics and net energy yield).\n\n## Section 2.2: Forced Convective Cooling and Thermal Dynamics\nIn automotive applications, cell operating temperature T_cell heavily impacts silicon bandgap efficiency.\nRelative velocity (v_rel = v_veh + v_wind) increases the convective heat transfer coefficient (h_conv), significantly lowering module equilibrium temperature compared to stationary PV installations.\nIncreasing vehicle speed increases forced convective cooling over the PV modules, lowering operating temperature and mitigating thermal efficiency degradation during operation.\n\n## Section 4: Comparison with Stationary Testing\nTransient shading and non-planar 3D curved surfaces cause stationary STC ratings to misestimate VIPV output by 20% to 40%."
+  },
+  {
+    "document_id": "doc-rw-vipv-004",
+    "title": "Investigation on the Aerodynamics and Energy Gain from Roof-Mounted Photovoltaic Systems for Plug-In Hybrid and Electric Vehicles",
+    "authors": ["Istvan Szabolcs Barabas", "Ion Matei", "Stefan Breban"],
+    "domain": "engineering:vehicle_mechanics",
+    "publication_year": 2026,
+    "journal": "World Electric Vehicle Journal",
+    "doi": "10.3390/wevj17090453",
+    "license": "CC BY 4.0",
+    "is_distractor": false,
+    "epistemic_tier": "PEER_REVIEWED",
+    "text_content": "# Aerodynamics and Energy Gain from Roof-Mounted Photovoltaic Systems\n\n## Abstract\nThis study investigates the aerodynamic penalty and electrical energy gain trade-off of roof-mounted photovoltaic retrofits across driving velocities from 50 to 130 km/h.\n\n## Section 2: Aerodynamic Drag Analysis\nWhen retrofitting PV modules onto vehicle roofs, added surface roughness and altered boundary layer profile increase aerodynamic drag coefficient (Cd) and frontal area, increasing mechanical road load tractive consumption, which must be offset by solar electrical generation.\n\n## Section 3: Road Load Power Consumption\nAerodynamic drag power scales cubically with velocity: P_aero = 0.5 * rho * Cd * Af * v^3.\nRolling resistance power scales linearly with velocity: P_rr = Crr * m_veh * g * v.\n\n## Section 4: High-Speed Net Energy Equilibrium Envelope\nAt low urban speeds below 50 km/h, aerodynamic drag penalties are minor, allowing positive net energy gains.\nHowever, at high cruising speeds (100-130 km/h), the aerodynamic drag penalty consumes more electrical energy than the roof PV array can generate (~200-350 W), resulting in a net energy deficit compared to a clean aerodynamic roofline."
+  }
+]

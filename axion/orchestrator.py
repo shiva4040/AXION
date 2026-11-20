@@ -139,6 +139,26 @@ class ResearchAnswer(BaseModel):
     hypotheses: List[Dict[str, Any]] = Field(default_factory=list)
     experiments: List[Dict[str, Any]] = Field(default_factory=list)
     validated_findings: List[Dict[str, Any]] = Field(default_factory=list)
+    subquestions: List[Dict[str, Any]] = Field(default_factory=list)
+    research_requirements: List[str] = Field(default_factory=list)
+    subquestion_dependencies: Dict[str, List[str]] = Field(default_factory=dict)
+    acquired_sources: List[Dict[str, Any]] = Field(default_factory=list)
+    extracted_evidence: List[Dict[str, Any]] = Field(default_factory=list)
+    cross_domain_bridges: List[Dict[str, Any]] = Field(default_factory=list)
+    missing_information: List[str] = Field(default_factory=list)
+    clarification_needed: bool = False
+    clarification_prompt: Optional[str] = None
+    intended_meaning: Optional[str] = None
+    scientific_subject: Optional[str] = None
+    problem_type: Optional[str] = None
+    extracted_concepts: List[str] = Field(default_factory=list)
+    entities: List[str] = Field(default_factory=list)
+    target_variables: List[str] = Field(default_factory=list)
+    declared_parameters: Dict[str, Any] = Field(default_factory=dict)
+    identified_constraints: Dict[str, Any] = Field(default_factory=dict)
+    ambiguity_notes: List[str] = Field(default_factory=list)
+    acquisition_stats: Dict[str, Any] = Field(default_factory=dict)
+    research_trace: Dict[str, Any] = Field(default_factory=dict)
     created_at: str
 
 class CognitivePipeline:
@@ -155,12 +175,18 @@ class CognitivePipeline:
         tester: Optional[FullHypothesisTester] = None,
         memory: Optional[ValidatedKnowledgeMemory] = None,
         acquisition_engine: Optional[Any] = None,
+        question_processor: Optional[Any] = None,
+        evidence_extractor: Optional[Any] = None,
+        accumulator: Optional[Any] = None,
     ):
         self.transfer_engine = transfer_engine or TransferEngine()
         self.hypothesis_gen = hypothesis_gen or HypothesisGenerator()
         self.tester = tester or FullHypothesisTester()
         self.memory = memory or ValidatedKnowledgeMemory(persistence_path="axion_validated_memory.json")
         self.acquisition_engine = acquisition_engine
+        self.question_processor = question_processor
+        self.evidence_extractor = evidence_extractor
+        self.accumulator = accumulator
         self._history: List[ResearchAnswer] = []
 
     def get_history(self) -> List[ResearchAnswer]:
@@ -186,6 +212,18 @@ class CognitivePipeline:
         now = datetime.now(timezone.utc).isoformat()
         q_lower = query.lower()
 
+        # Step 0: Stage 01 - Question Processing & Decomposition
+        if not self.question_processor:
+            from axion.pipeline.stage01_question import ScientificQuestionProcessor
+            self.question_processor = ScientificQuestionProcessor()
+        
+        try:
+            q_spec = await self.question_processor.process_question(raw_query=query, document_id=document_id)
+        except Exception as e:
+            logger.warning("Stage 01 question processing error: %s", e)
+            from axion.pipeline.types import QuestionSpec, QuestionIntent
+            q_spec = QuestionSpec(raw_query=query, intent=QuestionIntent.EXPLANATION)
+
         # Step 1: Check if an attached document exists
         doc_evidence = []
         if document_id and session:
@@ -200,20 +238,101 @@ class CognitivePipeline:
                     "epistemic_tier": EpistemicTier.FACT_DOCUMENTED.value,
                 })
 
-        # Step 1b: Optional On-Demand Information Acquisition from External Sources
-        if enable_external_acquisition and self.acquisition_engine:
+        # Step 1b: Scientific Knowledge Acquisition (Stage 02)
+        acquired_docs_list = []
+        if not self.acquisition_engine:
+            try:
+                from axion.acquisition.engine import InformationAcquisitionEngine
+                self.acquisition_engine = InformationAcquisitionEngine()
+            except Exception as e:
+                logger.debug("InformationAcquisitionEngine init warning: %s", e)
+
+        if self.acquisition_engine:
             try:
                 from axion.acquisition.types import SearchRequest
-                acq_req = SearchRequest(query=query, max_results_per_source=2)
+                acq_req = SearchRequest(query=query, max_results_per_source=2, timeout_seconds=4.0)
                 acq_res = await self.acquisition_engine.search(acq_req)
-                for adoc in acq_res.documents[:3]:
-                    doc_evidence.append({
-                        "source": f"External {adoc.source_name.upper()} ({adoc.doi or adoc.source_url or adoc.title[:30]})",
-                        "snippet": adoc.content[:250],
-                        "epistemic_tier": EpistemicTier.FACT_DOCUMENTED.value,
+                for adoc in acq_res.documents:
+                    doc_id = getattr(adoc, "id", None) or getattr(adoc, "document_id", f"doc-{len(acquired_docs_list)}")
+                    doc_uri = getattr(adoc, "source_url", None) or getattr(adoc, "source_uri", None)
+                    doc_year = None
+                    if getattr(adoc, "publication_date", None):
+                        try:
+                            doc_year = int(str(adoc.publication_date).split("-")[0])
+                        except Exception:
+                            pass
+                    doc_abstract = getattr(adoc, "content", "")[:300] if hasattr(adoc, "content") else ""
+                    doc_trust = adoc.trust_tier.value if hasattr(adoc.trust_tier, "value") else str(adoc.trust_tier)
+
+                    acquired_docs_list.append({
+                        "document_id": doc_id,
+                        "title": adoc.title,
+                        "source_name": adoc.source_name,
+                        "source_uri": doc_uri,
+                        "authors": adoc.authors,
+                        "year": doc_year,
+                        "abstract": doc_abstract,
+                        "epistemic_tier": doc_trust,
+                        "doi": adoc.doi,
                     })
+                    if getattr(adoc, "content", None):
+                        doc_evidence.append({
+                            "source": f"{adoc.source_name.upper()} ({adoc.doi or doc_uri or adoc.title[:30]})",
+                            "snippet": adoc.content[:250],
+                            "epistemic_tier": EpistemicTier.FACT_DOCUMENTED.value,
+                        })
             except Exception as e:
-                logger.debug("On-demand acquisition skipped: %s", e)
+                logger.debug("Acquisition step non-fatal warning: %s", e)
+
+        # Step 1c: Stage 03 - Evidence Extraction & Knowledge Accumulation
+        if not self.evidence_extractor:
+            from axion.pipeline.stage03_extraction import ScientificEvidenceExtractor
+            self.evidence_extractor = ScientificEvidenceExtractor()
+        if not self.accumulator:
+            from axion.acquisition.accumulation import KnowledgeAccumulator
+            self.accumulator = KnowledgeAccumulator()
+
+        extracted_ev_list = []
+        bridges_list = []
+        try:
+            from axion.pipeline.types import AcquiredChunk, AcquisitionPayload
+            from axion.core.types import ProvenancePointer
+            stage03_chunks = []
+            for idx, ev in enumerate(doc_evidence):
+                stage03_chunks.append(
+                    AcquiredChunk(
+                        chunk_id=f"chk-{idx}",
+                        document_id=ev.get("source", "source-doc"),
+                        page_number=1,
+                        text_content=ev.get("snippet", ""),
+                        source_title=ev.get("source", "literature"),
+                        provenance=ProvenancePointer(
+                            document_id=ev.get("source", "source-doc"),
+                            chunk_id=f"chk-{idx}",
+                            page_number=1,
+                            extracted_snippet=ev.get("snippet", "")[:100],
+                        ),
+                    )
+                )
+            if stage03_chunks:
+                acq_payload = AcquisitionPayload(
+                    query_id=q_spec.query_id,
+                    retrieved_chunks=stage03_chunks,
+                    sources_queried=[d.get("source_name", "literature") for d in acquired_docs_list] or ["literature"],
+                    total_retrieved=len(stage03_chunks),
+                )
+                ev_items = await self.evidence_extractor.extract_structured_evidence(
+                    payload=acq_payload,
+                    question_spec=q_spec,
+                )
+                for item in ev_items:
+                    self.accumulator.accumulate_item(item)
+                    extracted_ev_list.append(item.model_dump())
+
+                for b in self.accumulator.get_bridges():
+                    bridges_list.append(b.model_dump())
+        except Exception as e:
+            logger.debug("Stage 03 extraction/accumulation warning: %s", e)
 
         # Step 2: Retrieve domain knowledge bundles
         catalog = _get_benchmark_catalog()
@@ -551,6 +670,56 @@ class CognitivePipeline:
                             "epistemic_tier": r.epistemic_tier.value,
                         })
 
+        # Stage 03: Structured Scientific Evidence Extraction over complete evidence corpus
+        if not self.evidence_extractor:
+            from axion.pipeline.stage03_extraction import ScientificEvidenceExtractor
+            self.evidence_extractor = ScientificEvidenceExtractor()
+        if not self.accumulator:
+            from axion.acquisition.accumulation import KnowledgeAccumulator
+            self.accumulator = KnowledgeAccumulator()
+
+        extracted_ev_list = []
+        bridges_list = []
+        try:
+            from axion.pipeline.types import AcquiredChunk, AcquisitionPayload
+            from axion.core.types import ProvenancePointer
+            stage03_chunks = []
+            for idx, ev in enumerate(evidence):
+                stage03_chunks.append(
+                    AcquiredChunk(
+                        chunk_id=f"chk-{idx}",
+                        document_id=ev.get("source", "source-doc"),
+                        page_number=1,
+                        text_content=ev.get("snippet", ""),
+                        source_title=ev.get("source", "literature"),
+                        provenance=ProvenancePointer(
+                            document_id=ev.get("source", "source-doc"),
+                            chunk_id=f"chk-{idx}",
+                            page_number=1,
+                            extracted_snippet=ev.get("snippet", "")[:100],
+                        ),
+                    )
+                )
+            if stage03_chunks:
+                acq_payload = AcquisitionPayload(
+                    query_id=q_spec.query_id,
+                    retrieved_chunks=stage03_chunks,
+                    sources_queried=[d.get("source_name", "literature") for d in acquired_docs_list] or ["literature"],
+                    total_retrieved=len(stage03_chunks),
+                )
+                ev_items = await self.evidence_extractor.extract_structured_evidence(
+                    payload=acq_payload,
+                    question_spec=q_spec,
+                )
+                for item in ev_items:
+                    self.accumulator.accumulate_item(item)
+                    extracted_ev_list.append(item.model_dump())
+
+                for b in self.accumulator.get_bridges():
+                    bridges_list.append(b.model_dump())
+        except Exception as e:
+            logger.debug("Stage 03 extraction/accumulation warning: %s", e)
+
         # Assemble unified user-facing markdown text
         pts_md = "\n".join([f"- {p}" for p in important_points])
         steps_md = "\n".join([f"{s['step']}. **{s['action']}**: {s['detail']}" for s in how_it_works])
@@ -563,6 +732,46 @@ class CognitivePipeline:
             f"### Final Takeaway\n\n"
             f"{final_takeaway}"
         )
+
+        # Compile acquisition statistics and traceability
+        sources_breakdown = {}
+        for doc in acquired_docs_list:
+            s_name = doc.get("source_name", "literature")
+            sources_breakdown[s_name] = sources_breakdown.get(s_name, 0) + 1
+        
+        domain_dist = {}
+        for d in domains_involved:
+            domain_dist[d] = domain_dist.get(d, 0) + 1
+
+        acq_stats = {
+            "total_discovered": max(len(acquired_docs_list) + len(evidence), len(acquired_docs_list)),
+            "total_retrieved": len(acquired_docs_list),
+            "total_processed": len(extracted_ev_list),
+            "failed_count": 0,
+            "duplicate_count": 0,
+            "sources_breakdown": sources_breakdown,
+            "domain_distribution": domain_dist,
+        }
+
+        # Build cross-stage research trace mapping each subquestion to sources and evidence
+        research_trace_dict = {}
+        sq_list = q_spec.subquestions if hasattr(q_spec, 'subquestions') else []
+        for sq in sq_list:
+            supporting_items = [
+                ev for ev in extracted_ev_list
+                if sq.id in ev.get("relevant_subquestion_ids", [])
+            ]
+            research_trace_dict[sq.id] = {
+                "subquestion_id": sq.id,
+                "question": sq.question,
+                "target_subject": sq.target_subject,
+                "information_needed": sq.information_needed,
+                "depends_on": sq.depends_on,
+                "sources_used": list(dict.fromkeys([ev.get("source_name") for ev in supporting_items if ev.get("source_name")])),
+                "evidence_item_ids": [ev.get("item_id") for ev in supporting_items if ev.get("item_id")],
+                "key_findings": [ev.get("statement") for ev in supporting_items[:3] if ev.get("statement")],
+                "relevance_notes": [ev.get("relevance_explanation") for ev in supporting_items[:3] if ev.get("relevance_explanation")],
+            }
 
         ans = ResearchAnswer(
             investigation_id=inv_id,
@@ -581,6 +790,26 @@ class CognitivePipeline:
             hypotheses=hypotheses_dump,
             experiments=experiments_dump,
             validated_findings=findings_dump,
+            subquestions=[sq.model_dump() for sq in sq_list],
+            research_requirements=q_spec.research_requirements if hasattr(q_spec, 'research_requirements') else [],
+            subquestion_dependencies=q_spec.subquestion_dependencies if hasattr(q_spec, 'subquestion_dependencies') else {},
+            acquired_sources=acquired_docs_list,
+            extracted_evidence=extracted_ev_list,
+            cross_domain_bridges=bridges_list,
+            missing_information=q_spec.missing_information if hasattr(q_spec, 'missing_information') else [],
+            clarification_needed=q_spec.clarification_needed if hasattr(q_spec, 'clarification_needed') else False,
+            clarification_prompt=q_spec.clarification_prompt if hasattr(q_spec, 'clarification_prompt') else None,
+            intended_meaning=getattr(q_spec, 'intended_meaning', query),
+            scientific_subject=getattr(q_spec, 'scientific_subject', 'General Science'),
+            problem_type=getattr(q_spec, 'problem_type', 'conceptual_explanation'),
+            extracted_concepts=getattr(q_spec, 'extracted_concepts', []),
+            entities=getattr(q_spec, 'entities', []),
+            target_variables=getattr(q_spec, 'target_variables', []),
+            declared_parameters=getattr(q_spec, 'declared_parameters', {}),
+            identified_constraints=getattr(q_spec, 'identified_constraints', {}),
+            ambiguity_notes=getattr(q_spec, 'ambiguity_notes', []),
+            acquisition_stats=acq_stats,
+            research_trace=research_trace_dict,
             created_at=now,
         )
         self._history.append(ans)

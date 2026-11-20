@@ -9,6 +9,9 @@ from axion.pipeline.types import (
     AcquiredChunk,
     AcquisitionPayload,
     ExtractedClaim,
+    ExtractedEvidenceItem,
+    QuestionSpec,
+    SubQuestion,
 )
 
 logger = logging.getLogger(__name__)
@@ -235,3 +238,188 @@ class MinimalEvidenceExtractor:
             len(payload.candidate_memory_items),
         )
         return all_claims
+
+
+class ScientificEvidenceExtractor(MinimalEvidenceExtractor):
+    """
+    Stage 03: Enriched Scientific Evidence Extractor.
+    Extracts multi-faceted scientific knowledge (facts, equations, variables, conditions,
+    experimental findings, assumptions, materials, limitations) from diverse literature types.
+    Explicitly maps each item to Stage 01 subquestions with grounded relevance explanations,
+    detects internal contradictions, and identifies missing information.
+    """
+
+    def __init__(self, provider: Optional[LLMProvider] = None):
+        super().__init__(provider=provider)
+
+    def classify_item_type(self, statement: str, has_equations: bool, has_conditions: bool) -> str:
+        s_lower = statement.lower()
+        if has_equations or "=" in statement or "proportional to" in s_lower:
+            return "equation"
+        if any(w in s_lower for w in ["limit", "limitation", "breakdown", "valid only", "cannot"]):
+            return "limitation"
+        if any(w in s_lower for w in ["assuming", "assumed", "assumption", "idealized", "neglecting"]):
+            return "assumption"
+        if any(w in s_lower for w in ["measured", "experiment", "observed", "yielded", "data shows", "result"]):
+            return "experimental_result"
+        if any(w in s_lower for w in ["material", "silicon", "copper", "fluid", "polymer", "dielectric", "conductor"]):
+            return "material"
+        if any(w in s_lower for w in ["stator", "rotor", "piston", "valve", "inverter", "component", "cylinder"]):
+            return "component"
+        if any(w in s_lower for w in ["method", "procedure", "algorithm", "technique", "protocol"]):
+            return "method"
+        if has_conditions:
+            return "condition"
+        return "fact"
+
+    def attribute_relevance(
+        self,
+        statement: str,
+        item_type: str,
+        variables: List[str],
+        subquestions: List[SubQuestion],
+        raw_query: str,
+    ) -> Tuple[List[str], str]:
+        """
+        Maps extracted evidence to relevant subquestions and generates an explanatory note.
+        """
+        matched_sq_ids: List[str] = []
+        s_tokens = set(re.findall(r"\b[A-Za-z0-9_]+\b", statement.lower()))
+        var_tokens = set([v.lower() for v in variables])
+
+        for sq in subquestions:
+            sq_tokens = set(re.findall(r"\b[A-Za-z0-9_]+\b", f"{sq.question} {sq.target_subject} {sq.information_needed}".lower()))
+            overlap = (s_tokens | var_tokens) & sq_tokens
+            # Disregard stop words in overlap
+            meaningful_overlap = [t for t in overlap if len(t) > 3 and t not in MATH_KEYWORDS]
+            if meaningful_overlap:
+                matched_sq_ids.append(sq.id)
+
+        # Fallback to SQ-1 if no specific subquestion matched
+        if not matched_sq_ids and subquestions:
+            matched_sq_ids = [subquestions[0].id]
+
+        matched_str = ", ".join(matched_sq_ids) if matched_sq_ids else "primary research question"
+        if item_type == "equation":
+            explanation = f"Provides mathematical governing relation directly resolving information requirement for {matched_str}."
+        elif item_type == "condition" or item_type == "assumption":
+            explanation = f"Establishes physical regime and boundary constraints for {matched_str}."
+        elif item_type == "limitation":
+            explanation = f"Identifies operational limits and critical breakdown thresholds for {matched_str}."
+        elif item_type == "experimental_result":
+            explanation = f"Supplies verified empirical benchmark data supporting {matched_str}."
+        else:
+            explanation = f"Grounded factual foundation addressing target requirements of {matched_str}."
+
+        return matched_sq_ids, explanation
+
+    def detect_evidence_contradictions(
+        self, items: List[ExtractedEvidenceItem]
+    ) -> List[Tuple[str, str, str]]:
+        """
+        Detects opposing claims or conflicting equations between evidence items.
+        """
+        contradictions: List[Tuple[str, str, str]] = []
+        for i in range(len(items)):
+            for j in range(i + 1, len(items)):
+                item_a = items[i]
+                item_b = items[j]
+
+                # Directional contradiction check: increases vs decreases for same variable
+                text_a = item_a.statement.lower()
+                text_b = item_b.statement.lower()
+
+                common_vars = set(item_a.variables.keys()) & set(item_b.variables.keys())
+                for var in common_vars:
+                    if (
+                        ("increase" in text_a and "decrease" in text_b)
+                        or ("increase" in text_b and "decrease" in text_a)
+                        or ("proportional" in text_a and "inversely proportional" in text_b)
+                        or ("inversely proportional" in text_a and "proportional" in text_b)
+                    ):
+                        note = f"Directional contradiction detected on variable '{var}' between [{item_a.source_name}] and [{item_b.source_name}]."
+                        item_a.is_contradicted = True
+                        item_b.is_contradicted = True
+                        item_a.contradiction_notes = note
+                        item_b.contradiction_notes = note
+                        contradictions.append((item_a.item_id, item_b.item_id, note))
+
+        return contradictions
+
+    def identify_missing_evidence(
+        self,
+        subquestions: List[SubQuestion],
+        items: List[ExtractedEvidenceItem],
+    ) -> List[str]:
+        """
+        Identifies subquestions that lack sufficient backing evidence.
+        """
+        covered_sq_ids = set()
+        for item in items:
+            for sq_id in item.relevant_subquestion_ids:
+                covered_sq_ids.add(sq_id)
+
+        missing: List[str] = []
+        for sq in subquestions:
+            if sq.id not in covered_sq_ids:
+                missing.append(
+                    f"Subquestion {sq.id} ('{sq.question[:60]}...') requires additional acquisition: {sq.information_needed}."
+                )
+
+        return missing
+
+    async def extract_structured_evidence(
+        self,
+        payload: AcquisitionPayload,
+        question_spec: Optional[QuestionSpec] = None,
+    ) -> List[ExtractedEvidenceItem]:
+        """
+        Extracts structured scientific evidence items, maps them to Stage 01 subquestions,
+        and annotates provenance and contradictions.
+        """
+        evidence_items: List[ExtractedEvidenceItem] = []
+        subquestions = question_spec.subquestions if question_spec else []
+        raw_query = question_spec.raw_query if question_spec else ""
+
+        # Extract from retrieved chunks
+        for chunk in payload.retrieved_chunks:
+            claims = self.extract_claims_from_chunk(chunk)
+            for clm in claims:
+                item_type = self.classify_item_type(
+                    clm.statement,
+                    has_equations=len(clm.equations) > 0,
+                    has_conditions=len(clm.conditions) > 0,
+                )
+                vars_dict = {v: "physical_variable" for v in clm.variables}
+                matched_sqs, explanation = self.attribute_relevance(
+                    statement=clm.statement,
+                    item_type=item_type,
+                    variables=clm.variables,
+                    subquestions=subquestions,
+                    raw_query=raw_query,
+                )
+
+                ev_item = ExtractedEvidenceItem(
+                    item_id=f"ev-{clm.claim_id}",
+                    item_type=item_type,
+                    statement=clm.statement,
+                    canonical_symbol=clm.variables[0] if clm.variables else None,
+                    variables=vars_dict,
+                    relevance_explanation=explanation,
+                    relevant_subquestion_ids=matched_sqs,
+                    source_name=chunk.source_title or chunk.document_id,
+                    source_uri=chunk.source_uri,
+                    source_title=chunk.source_title or chunk.document_id,
+                    epistemic_tier=clm.epistemic_tier,
+                    confidence=clm.confidence,
+                    provenance=clm.provenance,
+                    assumptions=[c for c in clm.conditions if "assum" in c.lower()],
+                    conditions=[c for c in clm.conditions if "assum" not in c.lower()],
+                )
+                evidence_items.append(ev_item)
+
+        # Detect any contradictions
+        self.detect_evidence_contradictions(evidence_items)
+
+        return evidence_items
+

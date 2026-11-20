@@ -75,12 +75,12 @@ class OpenAlexConnector(BaseSourceConnector):
                     params={"search": "quantum", "per-page": 1},
                     headers=self.headers
                 )
-                if resp.status_code == 200:
+                if resp.status_code in (200, 429):
                     return SourceHealthStatus(
                         source_name=self.source_name,
                         source_type=self.source_type,
                         is_available=True,
-                        status_message="OpenAlex REST API operational (Polite Pool)",
+                        status_message="OpenAlex REST API operational (Polite Pool)" if resp.status_code == 200 else "OpenAlex operational (rate-limited)",
                         requires_auth=False,
                         is_authenticated=True,
                         rate_limit_info="Polite pool active: up to 100,000 requests/day",

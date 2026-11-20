@@ -198,3 +198,43 @@ class FindingDependencyEdge(Base):
     __table_args__ = (
         UniqueConstraint("parent_finding_id", "child_finding_id", name="uq_finding_dep_parent_child"),
     )
+
+
+class AccumulatedKnowledgeRecord(Base):
+    """Stage 02 Persistent Scientific Knowledge Item (claims, equations, concepts, assumptions)."""
+    __tablename__ = "accumulated_knowledge_items"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    document_id = Column(String(36), nullable=True, index=True)
+    source_name = Column(String(64), nullable=False, index=True)
+    source_title = Column(String(512), nullable=False)
+    doi = Column(String(255), nullable=True)
+    domain = Column(String(64), nullable=False, default="general_science", index=True)
+    item_type = Column(String(32), nullable=False, index=True)  # 'claim', 'equation', 'concept', 'assumption', 'boundary_condition', 'method', 'limitation'
+    content = Column(Text, nullable=False)
+    canonical_symbol = Column(String(64), nullable=True)
+    variables = Column(JSON, default=dict)
+    assumptions = Column(JSON, default=list)
+    boundary_conditions = Column(JSON, default=list)
+    confidence = Column(Float, default=1.0)
+    is_contradicted = Column(Boolean, default=False)
+    contradiction_notes = Column(Text, nullable=True)
+    provenance = Column(JSON, default=dict)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+
+
+class CrossDomainConnectionRecord(Base):
+    """Stage 02 Cross-Domain Concept & Equation Bridge."""
+    __tablename__ = "cross_domain_connections"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    source_item_id = Column(String(36), ForeignKey("accumulated_knowledge_items.id", ondelete="CASCADE"), nullable=False, index=True)
+    target_item_id = Column(String(36), ForeignKey("accumulated_knowledge_items.id", ondelete="CASCADE"), nullable=False, index=True)
+    source_domain = Column(String(64), nullable=False)
+    target_domain = Column(String(64), nullable=False)
+    bridge_type = Column(String(64), nullable=False)  # 'analogical_transfer', 'shared_parameter', 'structural_isomorphism', 'causal_influence'
+    shared_concept = Column(String(255), nullable=False)
+    confidence = Column(Float, default=0.85)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+

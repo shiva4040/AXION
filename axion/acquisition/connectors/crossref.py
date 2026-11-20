@@ -89,6 +89,17 @@ class CrossrefConnector(BaseSourceConnector):
                         rate_limit_info="Polite pool active via User-Agent/Mailto header",
                         supported_doc_types=self.supported_doc_types
                     )
+                if resp.status_code == 429:
+                    return SourceHealthStatus(
+                        source_name=self.source_name,
+                        source_type=self.source_type,
+                        is_available=True,
+                        status_message="Crossref operational (rate-limited HTTP 429; polite pool active)",
+                        requires_auth=False,
+                        is_authenticated=True,
+                        rate_limit_info="Rate-limited (HTTP 429)",
+                        supported_doc_types=self.supported_doc_types
+                    )
                 return SourceHealthStatus(
                     source_name=self.source_name,
                     source_type=self.source_type,
