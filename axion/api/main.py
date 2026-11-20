@@ -103,6 +103,7 @@ def create_app() -> FastAPI:
             return {"message": "AXION Intelligence Platform API"}
 
     @app.get("/health", tags=["Health"])
+    @app.get("/api/v1/health", tags=["Health"])
     async def health_check():
         return {
             "status": "healthy",
@@ -116,9 +117,29 @@ app = create_app()
 
 if __name__ == "__main__":
     import uvicorn
+    # Restrict reload to axion package directory and exclude db/storage/frontend files
+    # to avoid WatchFiles triggering spurious reloads during active pipeline operations
+    reload_dirs = [str(Path(__file__).resolve().parent.parent)]
+    reload_excludes = [
+        "*.db",
+        "*.db-journal",
+        "*.db-wal",
+        "*.db-shm",
+        "*.sqlite*",
+        "*.log",
+        "storage/*",
+        "frontend/*",
+        "*.pyc",
+        "__pycache__/*",
+        ".pytest_cache/*",
+        "tests/*",
+    ]
     uvicorn.run(
         "axion.api.main:app",
         host=settings.api_host,
         port=settings.api_port,
-        reload=(settings.axion_env == "development")
+        reload=(settings.axion_env == "development"),
+        reload_dirs=reload_dirs,
+        reload_excludes=reload_excludes,
+        timeout_keep_alive=300,
     )
