@@ -6,8 +6,9 @@
 **Phase:** Phase 1 — Foundation & Working Pipeline  
 **Date:** November 19, 2026  
 **Status:** Formally Completed & Accepted  
-**Repository State:** Clean, 130 Passed Regression Tests (100%)  
+**Repository State:** Clean, 132 Passed Regression Tests (100%)  
 **Benchmark Result:** All 7 Acceptance Gates Met (7 / 7)  
+**Independent Audit:** Conditionally Approved (see `docs/PHASE_1_INDEPENDENT_AUDIT.md`)  
 
 ---
 
@@ -75,11 +76,13 @@ Correct Abstention (Cat 5)     | 0.9667       | 0.0000       | +0.9667    | >= 9
 Failure & Timeout Rate         | 0.0000       | 0.0000       | 0.0        | < 5.0%     | PASS
 Reproducibility Compliance     | 1.0000       | 1.0000       | 0.0        | = 100.0%   | PASS
 ------------------------------------------------------------------------------------------
-Average Latency (ms)           | 22.23        | 8.97         | +13.26     | -          | -
+Average Latency (ms)           | 22.23*       | 8.97*        | +13.26     | -          | -
 
 ALL PHASE 1 ACCEPTANCE GATES PASSED: TRUE
 ================================================================================
 ```
+*\* Latency Note: Timings reflect local in-process execution using `MockProvider` and local SymPy substitution. Live hosted model inference (OpenAI/Gemini) will introduce typical network latency of 1.5s - 5.0s per query.*
+*Confidence Interval Note: Recall@5 Wilson 95% interval [0.8865, 1.0] reflects the Category 1 sample size of N = 30 required chunks (30/30 retrieved).*
 
 ---
 

@@ -47,10 +47,11 @@ All seven formal Phase 1 acceptance gates were measured across the 180 developme
 | 6 | Failure & Timeout Rate     | < 0.0500  | 0.0000 (0.0%)     | 0.0000 (0.0%)       |  0.0000    | PASSED    |
 | 7 | Reproducibility Compliance | = 100.0%  | 1.0000 (100.0%)   | 1.0000 (100.0%)     |  0.0000    | PASSED    |
 +---+----------------------------+-----------+-------------------+---------------------+------------+-----------+
-| - | Mean Latency per Query     | Diagnostic| 22.23 ms          | 8.97 ms             | +13.26 ms  | Info      |
+| - | Mean Latency per Query     | Diagnostic| 22.23 ms*         | 8.97 ms*            | +13.26 ms  | Info      |
 +---+----------------------------+-----------+-------------------+---------------------+------------+-----------+
 ```
-*Note: Brackets indicate 95% Wilson score binomial confidence intervals.*
+*Note: Brackets indicate 95% Wilson score binomial confidence intervals. Recall@5 interval [0.8865, 1.0] reflects the Category 1 required chunk count of N = 30 (30/30 retrieved).*  
+*\* Execution Reality Note: The 22.23 ms latency was achieved using local deterministic `MockProvider` and local SymPy substitution. Live hosted model API calls will exhibit 1.5s - 5.0s latency.*
 
 ---
 
