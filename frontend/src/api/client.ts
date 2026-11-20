@@ -4,19 +4,39 @@ import { DocumentSummary, ResearchAnswer, SubgraphData, ValidatedFinding } from 
 const API_BASE = '/api/v1';
 
 export async function askQuestion(query: string, document_id?: string): Promise<ResearchAnswer> {
-  const res = await fetch(`${API_BASE}/investigation/ask`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, document_id }),
-  });
-  if (!res.ok) {
-    const errorText = await res.text();
-    if (res.status === 502 || res.status === 504) {
-      throw new Error(`Backend server unreachable (${res.status}). Please ensure the AXION backend is running on http://127.0.0.1:8000 (execute: .\\.venv\\Scripts\\python.exe -m axion.api.main).`);
+  let attempts = 0;
+  const maxAttempts = 2;
+
+  while (attempts < maxAttempts) {
+    attempts++;
+    try {
+      const res = await fetch(`${API_BASE}/investigation/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, document_id }),
+      });
+      if (!res.ok) {
+        if ((res.status === 502 || res.status === 503 || res.status === 504) && attempts < maxAttempts) {
+          // Backend may be warming up or restarting, wait and retry once
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          continue;
+        }
+        const errorText = await res.text();
+        if (res.status === 502 || res.status === 504) {
+          throw new Error(`Backend server unreachable (${res.status}). Please ensure the AXION backend is running on http://127.0.0.1:8000.`);
+        }
+        throw new Error(`Server returned HTTP ${res.status}: ${errorText || res.statusText}`);
+      }
+      return await res.json();
+    } catch (err: any) {
+      if (attempts < maxAttempts && (err?.message?.includes('Failed to fetch') || err?.message?.includes('NetworkError'))) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        continue;
+      }
+      throw err;
     }
-    throw new Error(`Server returned HTTP ${res.status}: ${errorText || res.statusText}`);
   }
-  return res.json();
+  throw new Error('Backend connection failed after retry.');
 }
 
 export async function getInvestigationHistory(): Promise<ResearchAnswer[]> {

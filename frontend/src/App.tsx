@@ -22,6 +22,7 @@ export const App: React.FC = () => {
   const [currentAnswer, setCurrentAnswer] = useState<ResearchAnswer | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [historyDrawerOpen, setHistoryDrawerOpen] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const cleanup = initGlobalClickSound();
@@ -33,13 +34,14 @@ export const App: React.FC = () => {
 
   const handleAsk = async (query: string, documentId?: string) => {
     setIsLoading(true);
+    setErrorMessage(null);
     setActiveWorkspace('ask');
     try {
       const result = await askQuestion(query, documentId);
       setCurrentAnswer(result);
     } catch (err: any) {
       const msg = err?.message || 'Unknown network error';
-      alert(msg.startsWith('Investigation failed') ? msg : `Investigation failed: ${msg}`);
+      setErrorMessage(msg.startsWith('Investigation failed') ? msg : `Investigation failed: ${msg}`);
     } finally {
       setIsLoading(false);
     }
@@ -68,6 +70,23 @@ export const App: React.FC = () => {
         onOpenHistory={() => setHistoryDrawerOpen(true)}
         onGoHome={handleNewQuestion}
       />
+
+      {errorMessage && (
+        <div className="mx-auto my-3 max-w-3xl w-full px-4">
+          <div className="bg-[#FFF4E5] border-2 border-[#D97706] p-4 flex items-start justify-between shadow-[2px_2px_0px_#D97706]">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#92400E]">Connection Notice</span>
+              <p className="text-xs text-[#78350F]">{errorMessage}</p>
+            </div>
+            <button
+              onClick={() => setErrorMessage(null)}
+              className="text-[#92400E] hover:text-[#78350F] text-xs font-bold uppercase px-2 py-1 border border-[#D97706] bg-[#FEF3C7]"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Workspace Router */}
       <div className="flex-1 flex flex-col justify-center">

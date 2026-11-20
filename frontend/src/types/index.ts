@@ -105,6 +105,183 @@ export interface CrossDomainBridge {
   rationale: string;
 }
 
+export interface AgentStatusRecord {
+  role: string;
+  name: string;
+  status: 'IDLE' | 'ACTIVE' | 'COMPLETED' | 'BLOCKED' | 'FAILED';
+  current_task?: string;
+  started_at?: string;
+  completed_at?: string;
+  findings_count: number;
+}
+
+export interface AgentFinding {
+  finding_id: string;
+  agent_role: string;
+  agent_name: string;
+  round_number: number;
+  finding_type: string;
+  title: string;
+  content: string;
+  scientific_basis?: string;
+  confidence: number;
+  equations?: string[];
+  tags: string[];
+  timestamp: string;
+}
+
+export interface HierarchicalSubQuestion {
+  id: string;
+  question: string;
+  level: 'main' | 'major_area' | 'subquestion' | 'investigative';
+  parent_id?: string;
+  target_domain?: string;
+  information_needed: string[];
+  depends_on: string[];
+  rationales?: string;
+}
+
+export interface DiscoveredDomain {
+  name: string;
+  relevance: 'PRIMARY' | 'SECONDARY' | 'SUPPORTING' | 'CONDITIONAL';
+  rationale: string;
+  key_principles: string[];
+}
+
+export interface ScientificConcept {
+  name: string;
+  domain: string;
+  concept_type: 'law' | 'principle' | 'mechanism' | 'model' | 'empirical_effect';
+  definition: string;
+  relevance_to_question: string;
+}
+
+export interface GoverningEquation {
+  name: string;
+  latex: string;
+  symbols: Record<string, string>;
+  assumptions: string[];
+  validity_boundaries: string;
+  rationale: string;
+}
+
+export interface PhysicalProcessStep {
+  step_number: number;
+  name: string;
+  mechanism: string;
+  input_state: string;
+  output_state: string;
+  governing_principle: string;
+  critical_factors: string[];
+}
+
+export interface MaterialOrComponent {
+  name: string;
+  category: string;
+  specifications: string;
+  role: string;
+  operating_limits: string;
+  advantages: string[];
+  limitations: string[];
+}
+
+export interface EvidenceRequirement {
+  requirement_id: string;
+  target_subquestion: string;
+  information_needed: string;
+  target_sources: string[];
+  recommended_queries: string[];
+  required_data_points: string[];
+  verification_criteria: string;
+}
+
+export interface CrossDomainBridgeProposal {
+  source_domain: string;
+  target_domain: string;
+  source_concept: string;
+  target_concept: string;
+  analogical_mapping: string;
+  mathematical_correspondence: string;
+  validity_limits: string;
+  research_value: string;
+}
+
+export interface KnowledgeGap {
+  gap_id: string;
+  description: string;
+  gap_type: string;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  impact_on_research: string;
+  resolution_approach: string;
+  recommended_stage02_searches: string[];
+}
+
+export interface AgentCriticism {
+  criticism_id: string;
+  target_agent: string;
+  target_item: string;
+  criticism_type: string;
+  severity: 'CRITICAL' | 'WARNING' | 'SUGGESTION';
+  rationale: string;
+  proposed_correction: string;
+  status: string;
+}
+
+export interface ReviewEvent {
+  review_round: number;
+  criticisms_raised: number;
+  critical_issues: string[];
+  resolved_modifications: string[];
+  unresolved_disagreements: string[];
+  review_summary: string;
+}
+
+export interface CompletenessEvaluation {
+  overall_score: number;
+  intent_score: number;
+  domain_score: number;
+  subquestion_score: number;
+  equation_score: number;
+  evidence_score: number;
+  decision: 'READY' | 'CONDITIONAL' | 'NEEDS_REVISION';
+  unresolved_critical_issues: string[];
+  remaining_gaps: string[];
+  readiness_rationale: string;
+}
+
+export interface TimelineEvent {
+  timestamp: string;
+  agent_role: string;
+  agent_name: string;
+  event_type: string;
+  description: string;
+  round_number: number;
+}
+
+export interface AgenticResearchState {
+  original_question: string;
+  current_round: number;
+  max_rounds: number;
+  readiness_decision: string;
+  primary_domain?: string;
+  intent_analysis?: any;
+  agent_statuses: Record<string, AgentStatusRecord>;
+  findings: AgentFinding[];
+  subquestions: HierarchicalSubQuestion[];
+  discovered_domains: DiscoveredDomain[];
+  scientific_concepts: ScientificConcept[];
+  governing_equations: GoverningEquation[];
+  physical_process_chain: PhysicalProcessStep[];
+  materials_and_components: MaterialOrComponent[];
+  evidence_requirements: EvidenceRequirement[];
+  cross_domain_bridges: CrossDomainBridgeProposal[];
+  knowledge_gaps: KnowledgeGap[];
+  criticisms: AgentCriticism[];
+  review_events: ReviewEvent[];
+  completeness_evaluation?: CompletenessEvaluation;
+  timeline: TimelineEvent[];
+}
+
 export interface ResearchAnswer {
   investigation_id: string;
   query: string;
@@ -140,6 +317,7 @@ export interface ResearchAnswer {
   declared_parameters?: Record<string, any>;
   identified_constraints?: Record<string, any>;
   ambiguity_notes?: string[];
+  agentic_research_state?: AgenticResearchState;
   acquisition_stats?: {
     total_discovered?: number;
     total_retrieved?: number;

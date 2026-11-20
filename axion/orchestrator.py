@@ -159,6 +159,7 @@ class ResearchAnswer(BaseModel):
     ambiguity_notes: List[str] = Field(default_factory=list)
     acquisition_stats: Dict[str, Any] = Field(default_factory=dict)
     research_trace: Dict[str, Any] = Field(default_factory=dict)
+    agentic_research_state: Optional[Dict[str, Any]] = None
     created_at: str
 
 class CognitivePipeline:
@@ -810,6 +811,7 @@ class CognitivePipeline:
             ambiguity_notes=getattr(q_spec, 'ambiguity_notes', []),
             acquisition_stats=acq_stats,
             research_trace=research_trace_dict,
+            agentic_research_state=getattr(q_spec, 'agentic_research_state', None),
             created_at=now,
         )
         self._history.append(ans)

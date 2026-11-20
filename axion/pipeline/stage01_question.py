@@ -10,6 +10,7 @@ from pydantic import BaseModel, ValidationError
 
 from axion.core.provider import ChatMessage, LLMProvider, MockProvider
 from axion.orchestrator import DOMAIN_KEYWORD_MAP
+from axion.pipeline.agentic_planning.engine import AgenticPlanningEngine
 from axion.pipeline.types import (
     LLMQuestionProvenance,
     QuestionIntent,
@@ -467,6 +468,15 @@ class ScientificQuestionProcessor:
         rule_targets, rule_constraints, rule_params = self.extract_variables_and_constraints_rule_based(raw_query)
         rule_intent = self.classify_intent(raw_query, len(rule_domains))
 
+        # Execute 13-agent scientific planning engine
+        agentic_state_dict: Optional[Dict[str, Any]] = None
+        try:
+            agentic_engine = AgenticPlanningEngine(llm_provider=self.provider)
+            agentic_state = agentic_engine.plan_research(raw_query)
+            agentic_state_dict = agentic_state.model_dump()
+        except Exception as e:
+            logger.warning("Agentic research planning failed: %s", e)
+
         llm_provenance = LLMQuestionProvenance(
             model_name="rule_based_fallback",
             fallback_rule_based=True,
@@ -594,6 +604,7 @@ class ScientificQuestionProcessor:
                 subquestions=final_subquestions,
                 research_requirements=final_reqs,
                 subquestion_dependencies=final_deps,
+                agentic_research_state=agentic_state_dict,
             )
 
         # Step 4: Fallback / Deterministic Rule-Based Assembly
@@ -637,6 +648,7 @@ class ScientificQuestionProcessor:
             subquestions=fallback_sqs,
             research_requirements=fallback_reqs,
             subquestion_dependencies=fallback_deps,
+            agentic_research_state=agentic_state_dict,
         )
 
 

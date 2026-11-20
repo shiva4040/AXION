@@ -33,6 +33,7 @@ import {
   Info,
 } from 'lucide-react';
 import { ResearchAnswer, SubQuestion, ExtractedEvidenceItem, AcquiredDocumentSummary } from '../types';
+import { AgenticPlanningWorkspace } from './AgenticPlanningWorkspace';
 
 interface Props {
   answerData: ResearchAnswer;
@@ -346,6 +347,12 @@ export const AnswerWorkspace: React.FC<Props> = ({ answerData, onNewQuestion }) 
         {/* ========================================================================= */}
         {activeStage === 'stage01' && (
           <div className="space-y-6">
+            {/* Agentic Scientific Research Planning Workspace */}
+            <AgenticPlanningWorkspace
+              state={answerData.agentic_research_state}
+              fallbackQuery={answerData.query}
+            />
+
             {/* Stage Overview Banner */}
             <div className="bg-[#F8F5FC] border-2 border-[#493764] p-4 shadow-[2px_2px_0px_#493764]">
               <div className="flex items-center justify-between border-b border-[#D6C4EC] pb-2 mb-3">

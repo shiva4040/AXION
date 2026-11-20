@@ -131,6 +131,7 @@ class QuestionSpec(BaseModel):
     subquestions: List[SubQuestion] = Field(default_factory=list)
     research_requirements: List[str] = Field(default_factory=list)
     subquestion_dependencies: Dict[str, List[str]] = Field(default_factory=dict)
+    agentic_research_state: Optional[Dict[str, Any]] = None
 
 
 class AcquiredChunk(BaseModel):
